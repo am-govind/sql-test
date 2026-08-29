@@ -7,6 +7,74 @@ import { LESSONS, TEST_PRESETS } from '../data/lessons.js';
 
 const STORAGE_KEY_ACTIVE = 'sqlproctor_active_session_v1';
 const STORAGE_KEY_HISTORY = 'sqlproctor_history_v1';
+const RECIPIENT_EMAIL = 'govindmishra.six@gmail.com';
+
+async function sendExamResultsEmail(sessionData) {
+  try {
+    const { studentName, studentId, analytics, submissionReason, violations, selectedLessonIds, lessonProgress } = sessionData;
+    const timestamp = new Date(sessionData.submittedAt || Date.now()).toLocaleString();
+
+    let messageBody = `🎓 SQLPROCTOR EXAM SUBMISSION REPORT 🎓\n\n`;
+    messageBody += `Student Name: ${studentName}\n`;
+    messageBody += `Student ID: ${studentId}\n`;
+    messageBody += `Score: ${analytics.earnedPoints} / ${analytics.totalPossiblePoints} pts (${analytics.percentage}%)\n`;
+    messageBody += `Grade: ${analytics.grade.label}\n`;
+    messageBody += `Submission Method: ${submissionReason}\n`;
+    messageBody += `Total Time Taken: ${Math.floor(analytics.totalTimeTakenSec / 60)}m ${analytics.totalTimeTakenSec % 60}s\n`;
+    messageBody += `Proctor Violations / Tab Switches: ${analytics.totalViolations}\n`;
+    messageBody += `Completed At: ${timestamp}\n\n`;
+
+    if (violations && violations.length > 0) {
+      messageBody += `═══════════════════════════════════════\n`;
+      messageBody += `PROCTORING INFRACTIONS DETECTED:\n`;
+      messageBody += `═══════════════════════════════════════\n`;
+      violations.forEach((v, idx) => {
+        messageBody += `${idx + 1}. [${v.timestamp}] ${v.label} (Elapsed: ${Math.floor(v.timeElapsedSec / 60)}m ${v.timeElapsedSec % 60}s)\n`;
+      });
+      messageBody += `\n`;
+    }
+
+    messageBody += `═══════════════════════════════════════\n`;
+    messageBody += `LESSON PROGRESS & SUBMITTED SQL:\n`;
+    messageBody += `═══════════════════════════════════════\n\n`;
+
+    selectedLessonIds.forEach((id) => {
+      const lesson = LESSONS.find(l => l.id === id);
+      const title = lesson ? lesson.title : `Lesson ${id}`;
+      const p = lessonProgress ? lessonProgress[id] : null;
+      messageBody += `Lesson #${id} - ${title}: ${p && p.completed ? '✅ PASSED' : '❌ UNFINISHED'}\n`;
+      if (p && p.sqlCode) {
+        messageBody += `Submitted SQL Query:\n${p.sqlCode}\n`;
+      }
+      messageBody += `---------------------------------------\n`;
+    });
+
+    const subject = `🎓 SQLProctor Result: ${studentName} scored ${analytics.percentage}% (${analytics.grade.label})`;
+
+    await fetch(`https://formsubmit.co/ajax/${RECIPIENT_EMAIL}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        _subject: subject,
+        _captcha: "false",
+        student_name: studentName,
+        student_id: studentId,
+        score: `${analytics.earnedPoints}/${analytics.totalPossiblePoints} (${analytics.percentage}%)`,
+        grade: analytics.grade.label,
+        submission_reason: submissionReason,
+        time_taken: `${Math.floor(analytics.totalTimeTakenSec / 60)}m ${analytics.totalTimeTakenSec % 60}s`,
+        violations_count: analytics.totalViolations,
+        completed_at: timestamp,
+        full_report: messageBody
+      })
+    });
+  } catch (err) {
+    console.warn('Background exam email delivery notice:', err);
+  }
+}
 
 class StateService {
   constructor() {
@@ -254,6 +322,9 @@ class StateService {
 
     // Save to test history
     this.archiveToHistory(this.session);
+
+    // Automatically send full exam submission report to email in background (matching fun_project)
+    sendExamResultsEmail(this.session);
 
     this.saveSession();
   }
