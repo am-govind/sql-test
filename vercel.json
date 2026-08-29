@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/lesson/:path*", "destination": "/api/sqlbolt?upstream=lesson/:path*" },
+    { "source": "/topic/:path*", "destination": "/api/sqlbolt?upstream=topic/:path*" },
+    { "source": "/cs/:path*", "destination": "/api/sqlbolt?upstream=cs/:path*" }
+  ]
+}
