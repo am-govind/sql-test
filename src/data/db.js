@@ -4,13 +4,14 @@ import alasql from 'alasql';
  * SQLBolt Datasets & In-Memory SQL Execution Engine
  */
 
-export function initDatabase() {
+/** Drops and re-seeds every table, returning the database to its pristine state. */
+export function resetDatabase() {
   try {
-    alasql('DROP TABLE IF EXISTS movies;');
-    alasql('DROP TABLE IF EXISTS boxoffice;');
-    alasql('DROP TABLE IF EXISTS north_american_cities;');
-    alasql('DROP TABLE IF EXISTS buildings;');
-    alasql('DROP TABLE IF EXISTS employees;');
+    // Drop everything rather than a fixed list, so tables a student creates in
+    // the DDL lessons do not survive into the next run.
+    for (const { tableid } of alasql('SHOW TABLES') || []) {
+      alasql(`DROP TABLE IF EXISTS \`${tableid}\`;`);
+    }
   } catch (e) {}
 
   // 1. Movies Table
@@ -141,13 +142,39 @@ export function initDatabase() {
   `);
 }
 
+/** Table names that are legal unquoted in SQLite but reserved in alasql. */
+const RESERVED_TABLE_NAMES = new Set(['database', 'order', 'group', 'table', 'index']);
+
+/**
+ * SQLBolt teaches SQLite, which the embedded lessons run. The offline
+ * workspace runs alasql, which differs in two places these lessons hit.
+ * Translating here means students are graded on the answer SQLBolt expects
+ * rather than on our engine's quirks.
+ */
+function toAlasqlDialect(sql) {
+  let out = sql;
+
+  // SQLite accepts `ALTER TABLE t ADD col`; alasql requires the COLUMN keyword.
+  if (/\bALTER\s+TABLE\b/i.test(out)) {
+    out = out.replace(/\bADD\s+(?!COLUMN\b)([A-Za-z_]\w*)/gi, 'ADD COLUMN $1');
+  }
+
+  return out.replace(
+    /\b(CREATE|DROP|ALTER)\s+TABLE\s+(IF\s+(?:NOT\s+)?EXISTS\s+)?([A-Za-z_]\w*)/gi,
+    (match, verb, exists = '', name) =>
+      RESERVED_TABLE_NAMES.has(name.toLowerCase())
+        ? `${verb} TABLE ${exists}\`${name}\``
+        : match
+  );
+}
+
 export function runQuery(sqlString) {
   if (!sqlString || !sqlString.trim()) {
     return { success: false, error: 'Empty query' };
   }
 
   try {
-    const res = alasql(sqlString);
+    const res = alasql(toAlasqlDialect(sqlString));
     if (!Array.isArray(res)) {
       return { success: true, columns: ['Result'], rows: [[String(res)]], count: 1 };
     }

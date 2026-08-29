@@ -1,12 +1,19 @@
 /**
- * Main Proctored Test Arena View (Native 1-to-1 SQLBolt Workspace & Real-Time Proctoring)
+ * Proctored exam view.
+ *
+ * The workspace is the real SQLBolt lesson, embedded from our own origin. If
+ * that cannot be reached the offline workspace takes over so an exam in
+ * progress is never lost.
  */
 
-import { renderNavbar, updateNavbarTimer, updateNavbarViolations } from '../components/Navbar.js';
-import { renderSidebar } from '../components/Sidebar.js';
+import { boltShell } from '../components/BoltShell.js';
+import { navbarMarkup, wireNavbar, updateNavbarTimer, updateNavbarViolations } from '../components/Navbar.js';
+import { wireLessonMenu } from '../components/LessonMenu.js';
+import { renderIframeWorkspace } from '../components/IframeViewer.js';
 import { renderNativeSqlBoltView } from '../components/NativeSqlBoltView.js';
 import { showViolationModal } from '../components/ViolationModal.js';
 import { showSubmitConfirmModal } from '../components/SubmitConfirmModal.js';
+import { icons } from '../components/Icons.js';
 import { LESSONS } from '../data/lessons.js';
 import { state } from '../services/state.js';
 import { timer } from '../services/timer.js';
@@ -16,112 +23,207 @@ import { sound } from '../services/sound.js';
 export function renderTestPage(container, { onSubmitExam }) {
   const session = state.session;
 
-  const html = `
-    <div class="h-screen flex flex-col overflow-hidden bg-slate-50 select-none">
-      <!-- Navbar Container -->
-      <div id="test-navbar-container"></div>
-
-      <!-- Main Split View Container -->
-      <div class="flex-1 flex overflow-hidden">
-        <!-- Left / Center: Native SQLBolt Workspace -->
-        <main class="flex-1 h-full min-w-0 bg-white flex flex-col" id="test-workspace-container">
-          <!-- Rendered by NativeSqlBoltView -->
-        </main>
-
-        <!-- Right: Proctor Sidebar -->
-        <div class="w-80 lg:w-96 flex-shrink-0 h-full border-l border-slate-200 bg-slate-50" id="test-sidebar-container">
-          <!-- Rendered by Sidebar -->
-        </div>
-      </div>
-    </div>
-  `;
-
-  container.innerHTML = html;
-
-  const navbarContainer = container.querySelector('#test-navbar-container');
-  const workspaceContainer = container.querySelector('#test-workspace-container');
-  const sidebarContainer = container.querySelector('#test-sidebar-container');
-
-  // Sub-render helpers
-  function refreshSidebar() {
-    renderSidebar(sidebarContainer, {
-      onSelectLesson: (lessonId) => {
-        state.setCurrentLesson(lessonId);
-        refreshWorkspace();
-        refreshSidebar();
-      },
-      onToggleComplete: (lessonId) => {
-        state.toggleLessonCompleted(lessonId);
-        refreshSidebar();
-      },
-      onSaveSqlCode: (lessonId, code) => {
-        state.saveLessonSqlCode(lessonId, code);
-      }
-    });
-  }
-
-  function refreshWorkspace() {
-    const currentLesson = LESSONS.find(l => l.id === state.session.currentLessonId) || LESSONS[0];
-    renderNativeSqlBoltView(workspaceContainer, {
-      currentLesson,
-      onLessonCompleted: (lessonId) => {
-        refreshSidebar();
-      }
-    });
-  }
-
-  // Initial renders
-  renderNavbar(navbarContainer, {
-    onOpenSubmitModal: () => {
-      showSubmitConfirmModal({
-        onConfirmSubmit: () => {
-          doSubmitTest('manual');
-        }
-      });
-    },
-    onToggleMute: () => {}
+  container.innerHTML = boltShell({
+    header: navbarMarkup(),
+    body: `
+      <div id="exam-progress" class="border-b border-bolt-border px-6 py-2"></div>
+      <div id="fallback-banner"></div>
+      <div id="exam-workspace" class="min-h-[500px]"></div>
+      <div id="exam-advance" class="border-t border-bolt-border p-4"></div>
+    `,
   });
 
-  refreshWorkspace();
-  refreshSidebar();
+  const root = container.querySelector('.bolt-card');
+  const progressEl = container.querySelector('#exam-progress');
+  const bannerEl = container.querySelector('#fallback-banner');
+  const workspaceEl = container.querySelector('#exam-workspace');
+  const advanceEl = container.querySelector('#exam-advance');
 
-  // Helper to finalize and submit test
-  function doSubmitTest(reason = 'manual') {
+  let workspace = null;
+  let usingFallback = false;
+
+  const currentLesson = () =>
+    LESSONS.find((lesson) => lesson.id === state.session.currentLessonId) || LESSONS[0];
+
+  function submitExam(reason) {
     timer.stop();
     proctor.stop();
+    workspace?.destroy?.();
     state.submitTest(reason);
-    if (onSubmitExam) onSubmitExam();
+    onSubmitExam?.();
   }
 
-  // Start Proctor Service
+  function renderProgress() {
+    const { selectedLessonIds, lessonProgress } = state.session;
+    const solved = selectedLessonIds.filter((id) => lessonProgress[id]?.completed).length;
+    const percent = selectedLessonIds.length
+      ? Math.round((solved / selectedLessonIds.length) * 100)
+      : 0;
+
+    progressEl.innerHTML = `
+      <div class="flex items-center justify-between text-xs text-bolt-caption">
+        <span>${escapeHtml(currentLesson().title)}</span>
+        <span class="font-bold text-bolt-slate">${solved} / ${selectedLessonIds.length} lessons solved</span>
+      </div>
+      <div class="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-bolt-rule">
+        <div class="h-full bg-bolt-green transition-all duration-500" style="width: ${percent}%"></div>
+      </div>
+    `;
+  }
+
+  function renderAdvance() {
+    const lesson = currentLesson();
+    const solved = Boolean(state.session.lessonProgress[lesson.id]?.completed);
+    const ids = state.session.selectedLessonIds;
+    const isLast = ids.indexOf(lesson.id) === ids.length - 1;
+
+    advanceEl.innerHTML = `
+      <div class="flex items-center justify-between gap-4">
+        <p class="text-xs text-bolt-caption">
+          ${solved
+            ? 'All tasks solved. Continue to the next lesson.'
+            : 'Solve every task in the exercise above to unlock the next lesson.'}
+        </p>
+        <div class="flex items-center gap-2">
+          <button id="btn-skip" class="btn-secondary px-3 py-1.5 text-xs">Skip</button>
+          <button id="btn-continue" class="btn-success px-4 py-1.5 text-sm" ${solved && !isLast ? '' : 'disabled'}>
+            ${isLast ? 'Final lesson' : 'Continue'}
+          </button>
+        </div>
+      </div>
+    `;
+
+    advanceEl.querySelector('#btn-continue')?.addEventListener('click', () => {
+      sound.playClick();
+      goToAdjacentLesson(1);
+    });
+    advanceEl.querySelector('#btn-skip')?.addEventListener('click', () => {
+      sound.playClick();
+      goToAdjacentLesson(1, { allowUnsolved: true });
+    });
+  }
+
+  function goToAdjacentLesson(offset, { allowUnsolved = false } = {}) {
+    const ids = state.session.selectedLessonIds;
+    const index = ids.indexOf(state.session.currentLessonId);
+    const next = ids[index + offset];
+    if (next === undefined) return;
+    if (!allowUnsolved && !state.session.lessonProgress[state.session.currentLessonId]?.completed) return;
+    selectLesson(next);
+  }
+
+  function selectLesson(lessonId) {
+    state.setCurrentLesson(lessonId);
+    mountWorkspace();
+    renderProgress();
+    renderAdvance();
+  }
+
+  /** Progress reported by the bridge watching SQLBolt's own verdict. */
+  function handleProgress({ completed, sql }) {
+    const lesson = currentLesson();
+    if (sql) state.saveLessonSqlCode(lesson.id, sql);
+
+    const wasCompleted = Boolean(state.session.lessonProgress[lesson.id]?.completed);
+    if (completed && !wasCompleted) {
+      state.toggleLessonCompleted(lesson.id, true);
+      sound.playSuccessChime();
+    }
+
+    renderProgress();
+    renderAdvance();
+  }
+
+  function useFallback(reason) {
+    if (usingFallback) return;
+    usingFallback = true;
+
+    console.warn(`[workspace] embedded SQLBolt unavailable (${reason}); using offline workspace`);
+
+    bannerEl.innerHTML = `
+      <div class="flex items-start gap-2.5 border-b border-bolt-border bg-bolt-callout px-6 py-3 text-xs text-bolt-slate">
+        ${icons.alertTriangle('w-4 h-4 shrink-0 text-bolt-red')}
+        <span>
+          <strong>Offline workspace.</strong>
+          The embedded SQLBolt lesson could not be loaded, so the exam is continuing
+          with the built-in exercise. Your progress is still being recorded.
+        </span>
+      </div>
+    `;
+
+    mountWorkspace();
+  }
+
+  function mountWorkspace() {
+    workspace?.destroy?.();
+    workspaceEl.innerHTML = '';
+
+    const lesson = currentLesson();
+
+    if (usingFallback) {
+      renderNativeSqlBoltView(workspaceEl, {
+        currentLesson: lesson,
+        onLessonCompleted: () => {
+          renderProgress();
+          renderAdvance();
+        },
+      });
+      workspace = null;
+      return;
+    }
+
+    workspace = renderIframeWorkspace(workspaceEl, {
+      lesson,
+      onProgress: handleProgress,
+      onNavigateToSlug: (slug) => {
+        const target = LESSONS.find((item) => item.slug === slug);
+        if (target && state.session.selectedLessonIds.includes(target.id)) {
+          selectLesson(target.id);
+        }
+      },
+      onFailure: useFallback,
+    });
+  }
+
+  wireNavbar(root, {
+    onOpenSubmitModal: () =>
+      showSubmitConfirmModal({ onConfirmSubmit: () => submitExam('manual') }),
+  });
+  wireLessonMenu(root, { onSelectLesson: selectLesson });
+
+  renderProgress();
+  renderAdvance();
+  mountWorkspace();
+
   proctor.start({
     onViolation: (result) => {
       updateNavbarViolations(state.session.violations.length);
-      refreshSidebar();
-
       showViolationModal({
         violation: result.violation,
         strikesUsed: result.strikesUsed,
         maxStrikes: result.maxStrikes,
-        onAcknowledge: () => {}
       });
     },
-    onAutoSubmit: (result) => {
-      doSubmitTest('tab_switch_autosubmit');
-    }
+    onAutoSubmit: () => submitExam('tab_switch_autosubmit'),
   });
 
-  // Start Countdown Timer
-  const duration = session.durationSec;
   timer.start(
-    duration,
-    (remaining, initial) => {
+    session.remainingSec ?? session.durationSec,
+    (remaining) => {
       state.updateRemainingTime(remaining);
-      updateNavbarTimer(remaining, initial);
+      updateNavbarTimer(remaining);
     },
     () => {
       sound.playAutoSubmitAlarm();
-      doSubmitTest('time_expired');
+      submitExam('time_expired');
     }
   );
+}
+
+function escapeHtml(str = '') {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }

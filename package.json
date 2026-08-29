@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port 3000 --host",
+    "dev": "node server/index.js",
     "build": "vite build",
-    "preview": "vite preview"
+    "start": "NODE_ENV=production node server/index.js"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
@@ -19,7 +19,7 @@
   "dependencies": {
     "alasql": "^4.19.0",
     "canvas-confetti": "^1.9.3",
-    "lucide": "^0.439.0",
-    "sql.js": "^1.14.2"
+    "express": "^5.2.1",
+    "http-proxy-middleware": "^4.2.0"
   }
 }

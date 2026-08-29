@@ -1,0 +1,25 @@
+{
+  "hash": "da5ddcc8",
+  "configHash": "5790426a",
+  "lockfileHash": "50b5e8df",
+  "browserHash": "d0aa2abe",
+  "optimized": {
+    "alasql": {
+      "src": "../../node_modules/alasql/dist/alasql.min.js",
+      "file": "alasql.js",
+      "fileHash": "b311494c",
+      "needsInterop": true
+    },
+    "canvas-confetti": {
+      "src": "../../node_modules/canvas-confetti/dist/confetti.module.mjs",
+      "file": "canvas-confetti.js",
+      "fileHash": "34fb8b70",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-S3XCI6LX": {
+      "file": "chunk-S3XCI6LX.js"
+    }
+  }
+}

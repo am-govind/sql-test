@@ -1,177 +1,198 @@
 @import "tailwindcss";
 
-:root {
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --bg-card: #ffffff;
-  --border-subtle: #cbd5e1;
-  --border-active: #2563eb;
-  --text-main: #0f172a;
-  --text-muted: #475569;
-  --accent-primary: #2563eb;
-  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+/*
+ * Design tokens lifted from sqlbolt.com/cs/css/main.min.css so the exam shell
+ * and the embedded lesson share one palette.
+ */
+@theme {
+  --color-bolt-bg: #ede8e6;
+  --color-bolt-card: #f6f5f1;
+  --color-bolt-exercise: #f0ede5;
+  --color-bolt-editor: #ebeae2;
+  --color-bolt-tasks: #e2e0d5;
+  --color-bolt-callout: #eae8de;
+  --color-bolt-code: #dad9ce;
+  --color-bolt-menu: #f9f8f4;
+  --color-bolt-border: #e6e5dc;
+  --color-bolt-rule: #d8d6ca;
+
+  --color-bolt-blue: #2074e7;
+  --color-bolt-link: #186bdd;
+  --color-bolt-green: #39b54a;
+  --color-bolt-red: #e74c3c;
+  --color-bolt-amber: #bdbba3;
+
+  --color-bolt-ink: #394148;
+  --color-bolt-slate: #4a535f;
+  --color-bolt-muted: #787f8e;
+  --color-bolt-caption: #757575;
+
+  --font-display: 'Ruda', 'Segoe UI', Calibri, 'Trebuchet MS', Helvetica, Verdana, sans-serif;
+  --font-sans: 'Segoe UI', Calibri, 'Trebuchet MS', Helvetica, Verdana, sans-serif;
+  --font-mono: ui-monospace, Menlo, Consolas, monospace;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/*
+ * Everything below must be layered. Tailwind v4 emits its utilities inside
+ * `@layer utilities`, and unlayered rules beat layered ones no matter their
+ * specificity, so an unlayered `* { margin: 0 }` would silently cancel every
+ * `mx-auto` and `p-*` in the app.
+ */
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    min-height: 100vh;
+    background: var(--color-bolt-bg);
+    color: #111;
+    /* SQLBolt sets a 15px base and the embedded page inherits that rhythm. */
+    font: 15px var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
 }
 
-body {
-  background-color: #f8fafc;
-  color: #0f172a;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Custom Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--color-bolt-card);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--color-bolt-rule);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--color-bolt-amber);
 }
 
-/* Card utilities */
-.glass-panel {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+@layer components {
+
+/* The centred card, matching SQLBolt's own content panel. */
+.bolt-card {
+  background: var(--color-bolt-card);
+  border-top: 5px solid var(--color-bolt-blue);
+  border-radius: 0.15em;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
 }
 
-.glass-panel-glow {
-  background: #ffffff;
-  border: 1px solid #2563eb;
-  box-shadow: 0 0 15px rgba(37, 99, 235, 0.15);
+.bolt-callout {
+  padding: 0.75em;
+  background: var(--color-bolt-callout);
+  border-radius: 0.25em;
 }
 
-.glass-nav {
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-/* Form Inputs styling for high contrast */
-input[type="text"],
-input[type="number"],
-select,
-textarea {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  border: 1px solid #cbd5e1 !important;
-}
-
-input[type="text"]:focus,
-input[type="number"]:focus,
-select:focus,
-textarea:focus {
-  border-color: #2563eb !important;
-  outline: none !important;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
-}
-
-/* Button styles */
-.btn-primary {
-  background-color: #2563eb;
-  color: #ffffff;
-  font-weight: 600;
-  padding: 0.65rem 1.25rem;
-  border-radius: 8px;
-  border: 1px solid #1d4ed8;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+/* Flat, SQLBolt-style actions rather than the previous gradient buttons. */
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-success {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 0.25em;
+  font-weight: 700;
   cursor: pointer;
+  transition: background-color 225ms, color 225ms, border-color 225ms;
+}
+
+.btn-primary {
+  background: var(--color-bolt-blue);
+  color: #fff;
+  border: 1px solid var(--color-bolt-link);
 }
 
 .btn-primary:hover {
-  background-color: #1d4ed8;
-  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
-  transform: translateY(-1px);
+  background: var(--color-bolt-link);
 }
 
 .btn-secondary {
-  background-color: #ffffff;
-  color: #334155;
-  font-weight: 600;
-  padding: 0.65rem 1.25rem;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  cursor: pointer;
+  background: #fff;
+  color: var(--color-bolt-slate);
+  border: 1px solid var(--color-bolt-border);
 }
 
 .btn-secondary:hover {
-  background-color: #f8fafc;
-  border-color: #94a3b8;
-  color: #0f172a;
+  background: var(--color-bolt-menu);
+  color: var(--color-bolt-link);
 }
 
 .btn-danger {
-  background-color: #dc2626;
-  color: #ffffff;
-  font-weight: 600;
-  padding: 0.65rem 1.25rem;
-  border-radius: 8px;
-  border: 1px solid #b91c1c;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  cursor: pointer;
+  background: var(--color-bolt-red);
+  color: #fff;
+  border: 1px solid var(--color-bolt-red);
 }
 
 .btn-danger:hover {
-  background-color: #b91c1c;
+  background: #cb6969;
 }
 
 .btn-success {
-  background-color: #16a34a;
-  color: #ffffff;
-  font-weight: 600;
-  padding: 0.65rem 1.25rem;
-  border-radius: 8px;
-  border: 1px solid #15803d;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  cursor: pointer;
+  background: var(--color-bolt-green);
+  color: #fff;
+  border: 1px solid var(--color-bolt-green);
 }
 
 .btn-success:hover {
-  background-color: #15803d;
+  background: #2fb400;
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+.btn-primary:disabled,
+.btn-success:disabled {
+  background: #c9c9c9;
+  border-color: #c9c9c9;
+  color: #eee;
+  cursor: not-allowed;
+}
+
+input[type="text"],
+select,
+textarea {
+  background: #fff;
+  color: #111;
+  border: 1px solid var(--color-bolt-border);
+  border-radius: 0.25em;
+}
+
+input[type="text"]:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-bolt-link);
+  box-shadow: 0 0 0 3px rgba(24, 107, 221, 0.15);
+}
+
+/* Data tables, matching SQLBolt's header row and hairline borders. */
+.bolt-table {
+  width: 100%;
+  font-size: 0.875em;
+  border: 1px solid var(--color-bolt-border);
+  border-collapse: collapse;
+}
+
+.bolt-table thead tr {
+  background: var(--color-bolt-code);
+  border-bottom: 1px solid var(--color-bolt-code);
+}
+
+.bolt-table th {
+  padding: 0.4em 0.6em;
+  text-align: left;
+  font-weight: 700;
+}
+
+.bolt-table td {
+  padding: 0.4em 0.6em;
+  border-top: 1px solid var(--color-bolt-border);
 }
 
 .animate-fade-in {
@@ -179,13 +200,20 @@ textarea:focus {
 }
 
 code, pre {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
+}
+
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @media print {
   body {
-    background: white !important;
-    color: black !important;
+    background: #fff !important;
+    color: #000 !important;
   }
   .no-print {
     display: none !important;

@@ -1,6 +1,16 @@
 /**
- * Metadata for all 18 SQLBolt Lessons
- * Includes conceptual lesson text, syntax reference, tasks summary, database table schema, hints, and category.
+ * Metadata for the 18 SQLBolt lessons.
+ *
+ * `slug` maps onto sqlbolt.com's own lesson URLs and drives the embedded
+ * workspace. Every slug here was checked against the live lesson index.
+ *
+ * Each task carries a reference `solution`. The offline workspace grades by
+ * running that solution against a freshly seeded database and comparing the
+ * result to the student's, so no expected result sets need maintaining here.
+ * Optional per-task flags:
+ *   ordered        compare rows positionally (the task implies an ORDER BY)
+ *   verify         SELECT run after a statement that changes data or schema
+ *   compareColumns also require matching column names (CREATE / ALTER)
  */
 
 export const LESSON_CATEGORIES = {
@@ -12,6 +22,8 @@ export const LESSON_CATEGORIES = {
   MUTATION: { id: 'mutation', label: 'DML (Insert/Update/Delete)', color: 'rose' },
   DDL: { id: 'ddl', label: 'DDL (Create/Alter/Drop)', color: 'cyan' },
 };
+
+const SHOW_TABLES = 'SHOW TABLES';
 
 export const LESSONS = [
   {
@@ -26,14 +38,14 @@ export const LESSONS = [
     concept: 'To retrieve data from a SQL database, we use SELECT statements (queries). A query declares what data we want, where to find it, and optionally how to transform it. To fetch specific columns, list them separated by commas. Use an asterisk (*) to select all columns.',
     syntax: 'SELECT column1, column2 FROM mytable;\n-- Or select all columns:\nSELECT * FROM mytable;',
     defaultQuery: 'SELECT * FROM movies;',
+    hint: 'Use `SELECT title FROM movies;`, `SELECT director FROM movies;`, `SELECT title, director FROM movies;`, `SELECT title, year FROM movies;`, `SELECT * FROM movies;`.',
     tasks: [
-      'Find the title of each film',
-      'Find the director of each film',
-      'Find the title and director of each film',
-      'Find the title and year of each film',
-      'Find all the information about each film'
+      { prompt: 'Find the title of each film', solution: 'SELECT title FROM movies;' },
+      { prompt: 'Find the director of each film', solution: 'SELECT director FROM movies;' },
+      { prompt: 'Find the title and director of each film', solution: 'SELECT title, director FROM movies;' },
+      { prompt: 'Find the title and year of each film', solution: 'SELECT title, year FROM movies;' },
+      { prompt: 'Find all the information about each film', solution: 'SELECT * FROM movies;' },
     ],
-    hint: 'Use `SELECT title FROM movies;`, `SELECT director FROM movies;`, `SELECT title, director FROM movies;`, `SELECT title, year FROM movies;`, `SELECT * FROM movies;`.'
   },
   {
     id: 2,
@@ -47,13 +59,13 @@ export const LESSONS = [
     concept: 'We filter rows in SQL using the WHERE clause. You can use numeric comparison operators (=, !=, <, <=, >, >=) as well as the BETWEEN operator to check values within a range.',
     syntax: 'SELECT column FROM mytable\nWHERE column condition\n  AND/OR another_condition;',
     defaultQuery: 'SELECT * FROM movies;',
+    hint: 'Use `WHERE id = 6`, `WHERE year BETWEEN 2000 AND 2010`, `WHERE year NOT BETWEEN 2000 AND 2010`, `WHERE id <= 5`.',
     tasks: [
-      'Find the movie with a row id of 6',
-      'Find the movies released in the years between 2000 and 2010',
-      'Find the movies not released in the years between 2000 and 2010',
-      'Find the first 5 Pixar movies and their release year'
+      { prompt: 'Find the movie with a row id of 6', solution: 'SELECT * FROM movies WHERE id = 6;' },
+      { prompt: 'Find the movies released in the years between 2000 and 2010', solution: 'SELECT * FROM movies WHERE year BETWEEN 2000 AND 2010;' },
+      { prompt: 'Find the movies not released in the years between 2000 and 2010', solution: 'SELECT * FROM movies WHERE year NOT BETWEEN 2000 AND 2010;' },
+      { prompt: 'Find the first 5 Pixar movies and their release year', solution: 'SELECT title, year FROM movies WHERE id <= 5;' },
     ],
-    hint: 'Use `WHERE id = 6`, `WHERE year BETWEEN 2000 AND 2010`, `WHERE year NOT BETWEEN 2000 AND 2010`, `WHERE id <= 5`.'
   },
   {
     id: 3,
@@ -67,13 +79,13 @@ export const LESSONS = [
     concept: 'When filtering text columns, use the LIKE operator with wildcards: % matches zero or more characters, while _ matches a single character. Use NOT LIKE to exclude patterns.',
     syntax: 'SELECT * FROM mytable\nWHERE column LIKE "Pattern%"\n  OR column NOT LIKE "%Pattern";',
     defaultQuery: 'SELECT * FROM movies;',
+    hint: 'Use `WHERE title LIKE "Toy Story%"`, `WHERE director = "John Lasseter"`, `WHERE director != "John Lasseter"`, `WHERE title LIKE "WALL-%"`.',
     tasks: [
-      'Find all the Toy Story movies',
-      'Find all the movies directed by John Lasseter',
-      'Find all the movies (and director) not directed by John Lasseter',
-      'Find all the WALL-* movies'
+      { prompt: 'Find all the Toy Story movies', solution: "SELECT * FROM movies WHERE title LIKE 'Toy Story%';" },
+      { prompt: 'Find all the movies directed by John Lasseter', solution: "SELECT * FROM movies WHERE director = 'John Lasseter';" },
+      { prompt: 'Find all the movies (and director) not directed by John Lasseter', solution: "SELECT title, director FROM movies WHERE director != 'John Lasseter';" },
+      { prompt: 'Find all the WALL-* movies', solution: "SELECT * FROM movies WHERE title LIKE 'WALL-%';" },
     ],
-    hint: 'Use `WHERE title LIKE "Toy Story%"`, `WHERE director = "John Lasseter"`, `WHERE director != "John Lasseter"`, `WHERE title LIKE "WALL-%"`.'
   },
   {
     id: 4,
@@ -87,13 +99,13 @@ export const LESSONS = [
     concept: 'Use DISTINCT to discard duplicate rows from results. Use ORDER BY column ASC|DESC to sort results. Combine with LIMIT count OFFSET offset to paginate results.',
     syntax: 'SELECT DISTINCT column FROM mytable\nWHERE condition\nORDER BY column ASC\nLIMIT 5 OFFSET 0;',
     defaultQuery: 'SELECT * FROM movies;',
+    hint: 'Use `SELECT DISTINCT director FROM movies ORDER BY director ASC;`, `ORDER BY year DESC LIMIT 4;`, `ORDER BY title ASC LIMIT 5;`, `ORDER BY title ASC LIMIT 5 OFFSET 5;`.',
     tasks: [
-      'List all directors of Pixar movies alphabetically (no duplicates)',
-      'List the last 4 Pixar movies released (most recent to least)',
-      'List the first 5 Pixar movies sorted alphabetically',
-      'List the next 5 Pixar movies sorted alphabetically'
+      { prompt: 'List all directors of Pixar movies alphabetically (no duplicates)', solution: 'SELECT DISTINCT director FROM movies ORDER BY director ASC;', ordered: true },
+      { prompt: 'List the last 4 Pixar movies released (most recent to least)', solution: 'SELECT title, year FROM movies ORDER BY year DESC LIMIT 4;', ordered: true },
+      { prompt: 'List the first 5 Pixar movies sorted alphabetically', solution: 'SELECT title FROM movies ORDER BY title ASC LIMIT 5;', ordered: true },
+      { prompt: 'List the next 5 Pixar movies sorted alphabetically', solution: 'SELECT title FROM movies ORDER BY title ASC LIMIT 5 OFFSET 5;', ordered: true },
     ],
-    hint: 'Use `SELECT DISTINCT director FROM movies ORDER BY director ASC;`, `ORDER BY year DESC LIMIT 4;`, `ORDER BY title ASC LIMIT 5;`, `ORDER BY title ASC LIMIT 5 OFFSET 5;`.'
   },
   {
     id: 5,
@@ -107,14 +119,14 @@ export const LESSONS = [
     concept: 'Practice reviewing simple SELECT queries on the North American Cities database table. Apply filtering, sorting, limits, and projection.',
     syntax: 'SELECT city, population FROM north_american_cities\nWHERE country = "Canada"\nORDER BY population DESC;',
     defaultQuery: 'SELECT * FROM north_american_cities;',
+    hint: 'Filter by `country = "Canada"`, sort longitude/latitude or use `ORDER BY population DESC LIMIT 2`.',
     tasks: [
-      'List all Canadian cities and their populations',
-      'Order all cities in US by their latitude from north to south',
-      'List all cities west of Chicago, ordered from west to east',
-      'List the two largest cities in Mexico by population',
-      'List the third and fourth largest cities in the United States by population'
+      { prompt: 'List all Canadian cities and their populations', solution: "SELECT city, population FROM north_american_cities WHERE country = 'Canada';" },
+      { prompt: 'Order all cities in the US by their latitude from north to south', solution: "SELECT * FROM north_american_cities WHERE country = 'United States' ORDER BY latitude DESC;", ordered: true },
+      { prompt: 'List all cities west of Chicago, ordered from west to east', solution: "SELECT * FROM north_american_cities WHERE longitude < -87.629798 ORDER BY longitude ASC;", ordered: true },
+      { prompt: 'List the two largest cities in Mexico by population', solution: "SELECT * FROM north_american_cities WHERE country = 'Mexico' ORDER BY population DESC LIMIT 2;", ordered: true },
+      { prompt: 'List the third and fourth largest cities in the United States by population', solution: "SELECT * FROM north_american_cities WHERE country = 'United States' ORDER BY population DESC LIMIT 2 OFFSET 2;", ordered: true },
     ],
-    hint: 'Filter by `country = "Canada"`, sort longitude/latitude or use `ORDER BY population DESC LIMIT 2`.'
   },
   {
     id: 6,
@@ -128,12 +140,12 @@ export const LESSONS = [
     concept: 'Relational databases split data into multiple tables. Use INNER JOIN to combine rows from two tables based on a matching key column.',
     syntax: 'SELECT title, domestic_sales, international_sales\nFROM movies\nJOIN boxoffice ON movies.id = boxoffice.movie_id;',
     defaultQuery: 'SELECT * FROM movies JOIN boxoffice ON movies.id = boxoffice.movie_id;',
+    hint: 'Join using `INNER JOIN boxoffice ON movies.id = boxoffice.movie_id`.',
     tasks: [
-      'Find the domestic and international sales for each movie',
-      'Show sales for each movie that did better internationally than domestically',
-      'List all the movies by their ratings in descending order'
+      { prompt: 'Find the domestic and international sales for each movie', solution: 'SELECT title, domestic_sales, international_sales FROM movies JOIN boxoffice ON movies.id = boxoffice.movie_id;' },
+      { prompt: 'Show the sales numbers for each movie that did better internationally than domestically', solution: 'SELECT title, domestic_sales, international_sales FROM movies JOIN boxoffice ON movies.id = boxoffice.movie_id WHERE international_sales > domestic_sales;' },
+      { prompt: 'List all the movies by their ratings in descending order', solution: 'SELECT title, rating FROM movies JOIN boxoffice ON movies.id = boxoffice.movie_id ORDER BY rating DESC;', ordered: true },
     ],
-    hint: 'Join using `INNER JOIN boxoffice ON movies.id = boxoffice.movie_id`.'
   },
   {
     id: 7,
@@ -147,12 +159,12 @@ export const LESSONS = [
     concept: 'LEFT JOIN, RIGHT JOIN, and FULL JOIN include rows even when there is no matching record in the joined table.',
     syntax: 'SELECT building_name, name, role\nFROM buildings\nLEFT JOIN employees ON buildings.building_name = employees.building;',
     defaultQuery: 'SELECT * FROM buildings LEFT JOIN employees ON buildings.building_name = employees.building;',
+    hint: 'Use `LEFT JOIN` / `RIGHT JOIN` to include unmatched rows.',
     tasks: [
-      'Find the list of all buildings that have employees',
-      'Find the list of all buildings and their capacity',
-      'List all buildings and distinct employee roles in each building (including empty buildings)'
+      { prompt: 'Find the list of all buildings that have employees', solution: 'SELECT DISTINCT building FROM employees;' },
+      { prompt: 'Find the list of all buildings and their capacity', solution: 'SELECT * FROM buildings;' },
+      { prompt: 'List all buildings and the distinct employee roles in each building (including empty buildings)', solution: 'SELECT DISTINCT building_name, role FROM buildings LEFT JOIN employees ON building_name = building;' },
     ],
-    hint: 'Use `LEFT JOIN` / `RIGHT JOIN` to include unmatched rows.'
   },
   {
     id: 8,
@@ -166,11 +178,11 @@ export const LESSONS = [
     concept: 'NULL represents missing or unknown values in SQL. Always test for NULL using IS NULL or IS NOT NULL instead of equals (=).',
     syntax: 'SELECT name, role FROM employees\nWHERE building IS NULL;',
     defaultQuery: 'SELECT * FROM employees WHERE building IS NULL;',
+    hint: 'Test for missing values with `WHERE building IS NULL` or `WHERE role IS NULL`.',
     tasks: [
-      'Find the name and role of all employees who have not been assigned to a building',
-      'Find the names of the buildings that hold no employees'
+      { prompt: 'Find the name and role of all employees who have not been assigned to a building', solution: 'SELECT name, role FROM employees WHERE building IS NULL;' },
+      { prompt: 'Find the names of the buildings that hold no employees', solution: 'SELECT DISTINCT building_name FROM buildings LEFT JOIN employees ON building_name = building WHERE role IS NULL;' },
     ],
-    hint: 'Test for missing values with `WHERE building IS NULL` or `WHERE role IS NULL`.'
   },
   {
     id: 9,
@@ -184,12 +196,12 @@ export const LESSONS = [
     concept: 'SQL expressions allow mathematical computation on columns directly inside the SELECT clause. Use AS alias to rename expression columns.',
     syntax: 'SELECT title, (domestic_sales + international_sales) / 1000000 AS total_sales_millions\nFROM movies\nJOIN boxoffice ON movies.id = boxoffice.movie_id;',
     defaultQuery: 'SELECT title, (domestic_sales + international_sales) / 1000000 AS total_millions FROM movies JOIN boxoffice ON movies.id = boxoffice.movie_id;',
+    hint: 'Use math expressions like `(domestic_sales + international_sales) / 1000000` and `year % 2 = 0`.',
     tasks: [
-      'List all movies and their combined sales in millions of dollars',
-      'List all movies and their ratings in percent',
-      'List all movies that were released on even numbered years'
+      { prompt: 'List all movies and their combined sales in millions of dollars', solution: 'SELECT title, (domestic_sales + international_sales) / 1000000 AS total_millions FROM movies JOIN boxoffice ON movies.id = boxoffice.movie_id;' },
+      { prompt: 'List all movies and their ratings in percent', solution: 'SELECT title, rating * 10 AS rating_percent FROM movies JOIN boxoffice ON movies.id = boxoffice.movie_id;' },
+      { prompt: 'List all movies that were released on even number years', solution: 'SELECT title, year FROM movies WHERE year % 2 = 0;' },
     ],
-    hint: 'Use math expressions like `(domestic_sales + international_sales) / 1000000` and `year % 2 = 0`.'
   },
   {
     id: 10,
@@ -203,12 +215,12 @@ export const LESSONS = [
     concept: 'Aggregate functions summarize rows into a single value: COUNT(), SUM(), AVG(), MIN(), MAX(). Use GROUP BY to summarize values across categories.',
     syntax: 'SELECT role, AVG(years_employed) AS avg_years\nFROM employees\nGROUP BY role;',
     defaultQuery: 'SELECT role, AVG(years_employed) FROM employees GROUP BY role;',
+    hint: 'Use `MAX(years_employed)`, `AVG(years_employed)`, and `SUM(...) GROUP BY building`.',
     tasks: [
-      'Find the longest time that an employee has been at the studio',
-      'For each role, find the average number of years employed by employees in that role',
-      'Find the total number of employee years worked in each building'
+      { prompt: 'Find the longest time that an employee has been at the studio', solution: 'SELECT MAX(years_employed) FROM employees;' },
+      { prompt: 'For each role, find the average number of years employed by employees in that role', solution: 'SELECT role, AVG(years_employed) FROM employees GROUP BY role;' },
+      { prompt: 'Find the total number of employee years worked in each building', solution: 'SELECT building, SUM(years_employed) FROM employees GROUP BY building;' },
     ],
-    hint: 'Use `MAX(years_employed)`, `AVG(years_employed)`, and `SUM(...) GROUP BY building`.'
   },
   {
     id: 11,
@@ -222,12 +234,12 @@ export const LESSONS = [
     concept: 'Filter aggregated results using HAVING. Unlike WHERE (which filters rows before grouping), HAVING filters grouped rows after aggregation.',
     syntax: 'SELECT role, COUNT(*) FROM employees\nGROUP BY role\nHAVING COUNT(*) > 2;',
     defaultQuery: 'SELECT role, COUNT(*) FROM employees GROUP BY role;',
+    hint: 'Use `COUNT(*)` with `WHERE role = "Artist"` or `GROUP BY role`.',
     tasks: [
-      'Find the number of Artists in the studio (without a HAVING clause)',
-      'Find the number of Employees of each role in the studio',
-      'Find the total number of years employed by all Engineers'
+      { prompt: 'Find the number of Artists in the studio (without a HAVING clause)', solution: "SELECT COUNT(*) FROM employees WHERE role = 'Artist';" },
+      { prompt: 'Find the number of Employees of each role in the studio', solution: 'SELECT role, COUNT(*) FROM employees GROUP BY role;' },
+      { prompt: 'Find the total number of years employed by all Engineers', solution: "SELECT SUM(years_employed) FROM employees WHERE role = 'Engineer';" },
     ],
-    hint: 'Use `COUNT(*)` with `WHERE role = "Artist"` or `GROUP BY role`.'
   },
   {
     id: 12,
@@ -241,11 +253,11 @@ export const LESSONS = [
     concept: 'SQL executes queries in strict logical order: 1. FROM & JOIN, 2. WHERE, 3. GROUP BY, 4. HAVING, 5. SELECT, 6. DISTINCT, 7. ORDER BY, 8. LIMIT / OFFSET.',
     syntax: 'SELECT director, COUNT(*) FROM movies\nGROUP BY director;',
     defaultQuery: 'SELECT director, COUNT(*) FROM movies GROUP BY director;',
+    hint: 'Remember SQL order: `FROM` -> `JOIN` -> `WHERE` -> `GROUP BY` -> `HAVING` -> `SELECT` -> `ORDER BY` -> `LIMIT`.',
     tasks: [
-      'Find the number of movies each director has directed',
-      'Find the total domestic and international sales that can be attributed to each director'
+      { prompt: 'Find the number of movies each director has directed', solution: 'SELECT director, COUNT(*) FROM movies GROUP BY director;' },
+      { prompt: 'Find the total domestic and international sales that can be attributed to each director', solution: 'SELECT director, SUM(domestic_sales + international_sales) FROM movies JOIN boxoffice ON movies.id = boxoffice.movie_id GROUP BY director;' },
     ],
-    hint: 'Remember SQL order: `FROM` -> `JOIN` -> `WHERE` -> `GROUP BY` -> `HAVING` -> `SELECT` -> `ORDER BY` -> `LIMIT`.'
   },
   {
     id: 13,
@@ -259,11 +271,19 @@ export const LESSONS = [
     concept: 'Use INSERT INTO mytable (col1, col2) VALUES (val1, val2) to add new rows of data into a table.',
     syntax: 'INSERT INTO movies (id, title, director, year, length_minutes)\nVALUES (15, "Toy Story 4", "Josh Cooley", 2019, 100);',
     defaultQuery: 'SELECT * FROM movies;',
+    hint: 'Use `INSERT INTO movies (title, director, year, length_minutes) VALUES (...)`.',
     tasks: [
-      'Add the studio\'s new production, Toy Story 4 to the list of movies',
-      'Toy Story 4 has been released to critical acclaim! Add its boxoffice record'
+      {
+        prompt: "Add the studio's new production, Toy Story 4 to the list of movies",
+        solution: "INSERT INTO movies (id, title, director, year, length_minutes) VALUES (15, 'Toy Story 4', 'Josh Cooley', 2019, 100);",
+        verify: "SELECT title FROM movies WHERE title = 'Toy Story 4';",
+      },
+      {
+        prompt: 'Toy Story 4 has been released to critical acclaim! Add its boxoffice record',
+        solution: 'INSERT INTO boxoffice (movie_id, rating, domestic_sales, international_sales) VALUES (15, 8.7, 340000000, 270000000);',
+        verify: 'SELECT movie_id FROM boxoffice WHERE movie_id = 15;',
+      },
     ],
-    hint: 'Use `INSERT INTO movies (title, director, year, length_minutes) VALUES (...)`.'
   },
   {
     id: 14,
@@ -276,13 +296,25 @@ export const LESSONS = [
     points: 15,
     concept: 'Use UPDATE mytable SET col1 = val1 WHERE condition to modify existing rows in a database.',
     syntax: 'UPDATE movies\nSET director = "John Lasseter"\nWHERE title = "A Bug\'s Life";',
-    defaultQuery: 'SELECT * FROM movies WHERE title = "A Bug\'s Life";',
+    defaultQuery: "SELECT * FROM movies WHERE title = 'A Bug''s Life';",
+    hint: 'Use `UPDATE movies SET director = "John Lasseter" WHERE title = "A Bug\'s Life";`.',
     tasks: [
-      'The director for A Bug\'s Life is incorrect, update it to John Lasseter',
-      'The year that Toy Story 2 was released is incorrect, update it to 1999',
-      'Both the title and director for Toy Story 8 are incorrect! Update both'
+      {
+        prompt: "The director for A Bug's Life is incorrect, update it to John Lasseter",
+        solution: "UPDATE movies SET director = 'John Lasseter' WHERE title = 'A Bug''s Life';",
+        verify: 'SELECT title, director FROM movies;',
+      },
+      {
+        prompt: 'The year that Toy Story 2 was released is incorrect, update it to 1999',
+        solution: "UPDATE movies SET year = 1999 WHERE title = 'Toy Story 2';",
+        verify: 'SELECT title, year FROM movies;',
+      },
+      {
+        prompt: 'Both the title and director for Toy Story 8 are incorrect! Update them',
+        solution: "UPDATE movies SET title = 'Toy Story 3', director = 'Lee Unkrich' WHERE id = 11;",
+        verify: 'SELECT id, title, director FROM movies;',
+      },
     ],
-    hint: 'Use `UPDATE movies SET director = "John Lasseter" WHERE title = "A Bug\'s Life";`.'
   },
   {
     id: 15,
@@ -296,11 +328,19 @@ export const LESSONS = [
     concept: 'Use DELETE FROM mytable WHERE condition to remove rows. Always use a WHERE clause to avoid wiping the entire table.',
     syntax: 'DELETE FROM movies\nWHERE year < 2005;',
     defaultQuery: 'SELECT * FROM movies;',
+    hint: 'Always specify a `WHERE` condition when using `DELETE FROM movies WHERE ...`.',
     tasks: [
-      'This database is getting too big, remove all movies released before 2005',
-      'Andrew Stanton has left the studio, remove all movies directed by him'
+      {
+        prompt: 'This database is getting too big, remove all movies released before 2005',
+        solution: 'DELETE FROM movies WHERE year < 2005;',
+        verify: 'SELECT title, year FROM movies;',
+      },
+      {
+        prompt: 'Andrew Stanton has left the studio, remove all movies directed by him',
+        solution: "DELETE FROM movies WHERE director = 'Andrew Stanton';",
+        verify: 'SELECT title, director FROM movies;',
+      },
     ],
-    hint: 'Always specify a `WHERE` condition when using `DELETE FROM movies WHERE ...`.'
   },
   {
     id: 16,
@@ -314,10 +354,14 @@ export const LESSONS = [
     concept: 'Use CREATE TABLE mytable (column_name data_type constraint) to create new database tables with defined column data types (TEXT, INTEGER, FLOAT, BOOLEAN).',
     syntax: 'CREATE TABLE Database (\n  Name TEXT,\n  Version FLOAT,\n  Download_count INTEGER\n);',
     defaultQuery: 'CREATE TABLE Database (Name TEXT, Version FLOAT, Download_count INTEGER);',
+    hint: 'Use `CREATE TABLE Database (Name TEXT, Version FLOAT, Download_count INTEGER);`.',
     tasks: [
-      'Create a new table named Database with the schema: Name (TEXT), Version (FLOAT), Download_count (INTEGER)'
+      {
+        prompt: 'Create a new table named Database with the schema: Name (TEXT), Version (FLOAT), Download_count (INTEGER)',
+        solution: 'CREATE TABLE Database (Name TEXT, Version FLOAT, Download_count INTEGER);',
+        verify: SHOW_TABLES,
+      },
     ],
-    hint: 'Use `CREATE TABLE Database (Name TEXT, Version FLOAT, Download_count INTEGER);`.'
   },
   {
     id: 17,
@@ -331,11 +375,21 @@ export const LESSONS = [
     concept: 'Use ALTER TABLE mytable ADD column_name data_type to alter an existing table schema.',
     syntax: 'ALTER TABLE movies ADD Aspect_ratio FLOAT;',
     defaultQuery: 'ALTER TABLE movies ADD Aspect_ratio FLOAT;',
+    hint: 'Use `ALTER TABLE Movies ADD COLUMN Aspect_ratio FLOAT;`.',
     tasks: [
-      'Add a new column named Aspect_ratio with a FLOAT data type',
-      'Add another column named Language with a TEXT data type to have DEFAULT "English"'
+      {
+        prompt: 'Add a new column named Aspect_ratio with a FLOAT data type',
+        solution: 'ALTER TABLE movies ADD Aspect_ratio FLOAT;',
+        verify: 'SELECT * FROM movies LIMIT 1;',
+        compareColumns: true,
+      },
+      {
+        prompt: 'Add another column named Language with a TEXT data type defaulting to English',
+        solution: "ALTER TABLE movies ADD Language TEXT DEFAULT 'English';",
+        verify: 'SELECT * FROM movies LIMIT 1;',
+        compareColumns: true,
+      },
     ],
-    hint: 'Use `ALTER TABLE Movies ADD COLUMN Aspect_ratio FLOAT;`.'
   },
   {
     id: 18,
@@ -349,12 +403,20 @@ export const LESSONS = [
     concept: 'Use DROP TABLE IF EXISTS mytable to permanently remove a table and all of its data from the database.',
     syntax: 'DROP TABLE IF EXISTS Movies;\nDROP TABLE IF EXISTS BoxOffice;',
     defaultQuery: 'DROP TABLE IF EXISTS Movies;',
+    hint: 'Use `DROP TABLE IF EXISTS Movies;` and `DROP TABLE IF EXISTS BoxOffice;`.',
     tasks: [
-      'We\'ve cleaned up our database, remove the Movies table',
-      'And drop the BoxOffice table as well'
+      {
+        prompt: "We've cleaned up our database, remove the Movies table",
+        solution: 'DROP TABLE IF EXISTS movies;',
+        verify: SHOW_TABLES,
+      },
+      {
+        prompt: 'And drop the BoxOffice table as well',
+        solution: 'DROP TABLE IF EXISTS boxoffice;',
+        verify: SHOW_TABLES,
+      },
     ],
-    hint: 'Use `DROP TABLE IF EXISTS Movies;` and `DROP TABLE IF EXISTS BoxOffice;`.'
-  }
+  },
 ];
 
 export const TEST_PRESETS = [
@@ -364,7 +426,7 @@ export const TEST_PRESETS = [
     description: 'Covers the full SQL curriculum from basic SELECT queries to DDL table schema operations.',
     lessonIds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
     defaultDuration: 45 * 60,
-    badge: 'Standard Certification'
+    badge: 'Standard Certification',
   },
   {
     id: 'select_foundations',
@@ -372,7 +434,7 @@ export const TEST_PRESETS = [
     description: 'Focused test on basic querying, constraints, filtering, text matching, and sorting.',
     lessonIds: [1, 2, 3, 4, 5],
     defaultDuration: 20 * 60,
-    badge: 'Core SQL'
+    badge: 'Core SQL',
   },
   {
     id: 'joins_aggregates',
@@ -380,7 +442,7 @@ export const TEST_PRESETS = [
     description: 'Multi-table queries, inner/outer joins, expressions, grouping, aggregate functions, and execution order.',
     lessonIds: [6, 7, 8, 9, 10, 11, 12],
     defaultDuration: 30 * 60,
-    badge: 'Intermediate'
+    badge: 'Intermediate',
   },
   {
     id: 'dml_ddl',
@@ -388,6 +450,6 @@ export const TEST_PRESETS = [
     description: 'INSERT, UPDATE, DELETE, CREATE TABLE, ALTER TABLE, and DROP TABLE operations.',
     lessonIds: [13, 14, 15, 16, 17, 18],
     defaultDuration: 25 * 60,
-    badge: 'Database Admin'
-  }
+    badge: 'Database Admin',
+  },
 ];
