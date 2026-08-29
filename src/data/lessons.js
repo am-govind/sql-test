@@ -1,0 +1,393 @@
+/**
+ * Metadata for all 18 SQLBolt Lessons
+ * Includes conceptual lesson text, syntax reference, tasks summary, database table schema, hints, and category.
+ */
+
+export const LESSON_CATEGORIES = {
+  BASICS: { id: 'basics', label: 'SELECT Basics', color: 'indigo' },
+  JOINS: { id: 'joins', label: 'JOINs & Relations', color: 'emerald' },
+  EXPRESSIONS: { id: 'expressions', label: 'Expressions & Math', color: 'amber' },
+  AGGREGATES: { id: 'aggregates', label: 'Aggregates & Grouping', color: 'purple' },
+  EXECUTION: { id: 'execution', label: 'Query Order', color: 'sky' },
+  MUTATION: { id: 'mutation', label: 'DML (Insert/Update/Delete)', color: 'rose' },
+  DDL: { id: 'ddl', label: 'DDL (Create/Alter/Drop)', color: 'cyan' },
+};
+
+export const LESSONS = [
+  {
+    id: 1,
+    slug: 'select_queries_introduction',
+    title: 'SQL Lesson 1: SELECT queries 101',
+    shortTitle: '1. SELECT 101',
+    category: LESSON_CATEGORIES.BASICS,
+    table: 'Movies',
+    difficulty: 'Easy',
+    points: 10,
+    concept: 'To retrieve data from a SQL database, we use SELECT statements (queries). A query declares what data we want, where to find it, and optionally how to transform it. To fetch specific columns, list them separated by commas. Use an asterisk (*) to select all columns.',
+    syntax: 'SELECT column1, column2 FROM mytable;\n-- Or select all columns:\nSELECT * FROM mytable;',
+    defaultQuery: 'SELECT * FROM movies;',
+    tasks: [
+      'Find the title of each film',
+      'Find the director of each film',
+      'Find the title and director of each film',
+      'Find the title and year of each film',
+      'Find all the information about each film'
+    ],
+    hint: 'Use `SELECT title FROM movies;`, `SELECT director FROM movies;`, `SELECT title, director FROM movies;`, `SELECT title, year FROM movies;`, `SELECT * FROM movies;`.'
+  },
+  {
+    id: 2,
+    slug: 'select_queries_with_constraints',
+    title: 'SQL Lesson 2: Queries with constraints (Pt. 1)',
+    shortTitle: '2. Constraints Pt. 1',
+    category: LESSON_CATEGORIES.BASICS,
+    table: 'Movies',
+    difficulty: 'Easy',
+    points: 10,
+    concept: 'We filter rows in SQL using the WHERE clause. You can use numeric comparison operators (=, !=, <, <=, >, >=) as well as the BETWEEN operator to check values within a range.',
+    syntax: 'SELECT column FROM mytable\nWHERE column condition\n  AND/OR another_condition;',
+    defaultQuery: 'SELECT * FROM movies;',
+    tasks: [
+      'Find the movie with a row id of 6',
+      'Find the movies released in the years between 2000 and 2010',
+      'Find the movies not released in the years between 2000 and 2010',
+      'Find the first 5 Pixar movies and their release year'
+    ],
+    hint: 'Use `WHERE id = 6`, `WHERE year BETWEEN 2000 AND 2010`, `WHERE year NOT BETWEEN 2000 AND 2010`, `WHERE id <= 5`.'
+  },
+  {
+    id: 3,
+    slug: 'select_queries_with_constraints_pt_2',
+    title: 'SQL Lesson 3: Queries with constraints (Pt. 2)',
+    shortTitle: '3. Constraints Pt. 2',
+    category: LESSON_CATEGORIES.BASICS,
+    table: 'Movies',
+    difficulty: 'Easy',
+    points: 10,
+    concept: 'When filtering text columns, use the LIKE operator with wildcards: % matches zero or more characters, while _ matches a single character. Use NOT LIKE to exclude patterns.',
+    syntax: 'SELECT * FROM mytable\nWHERE column LIKE "Pattern%"\n  OR column NOT LIKE "%Pattern";',
+    defaultQuery: 'SELECT * FROM movies;',
+    tasks: [
+      'Find all the Toy Story movies',
+      'Find all the movies directed by John Lasseter',
+      'Find all the movies (and director) not directed by John Lasseter',
+      'Find all the WALL-* movies'
+    ],
+    hint: 'Use `WHERE title LIKE "Toy Story%"`, `WHERE director = "John Lasseter"`, `WHERE director != "John Lasseter"`, `WHERE title LIKE "WALL-%"`.'
+  },
+  {
+    id: 4,
+    slug: 'filtering_sorting_query_results',
+    title: 'SQL Lesson 4: Filtering and sorting Query results',
+    shortTitle: '4. Filter & Sort',
+    category: LESSON_CATEGORIES.BASICS,
+    table: 'Movies',
+    difficulty: 'Easy',
+    points: 10,
+    concept: 'Use DISTINCT to discard duplicate rows from results. Use ORDER BY column ASC|DESC to sort results. Combine with LIMIT count OFFSET offset to paginate results.',
+    syntax: 'SELECT DISTINCT column FROM mytable\nWHERE condition\nORDER BY column ASC\nLIMIT 5 OFFSET 0;',
+    defaultQuery: 'SELECT * FROM movies;',
+    tasks: [
+      'List all directors of Pixar movies alphabetically (no duplicates)',
+      'List the last 4 Pixar movies released (most recent to least)',
+      'List the first 5 Pixar movies sorted alphabetically',
+      'List the next 5 Pixar movies sorted alphabetically'
+    ],
+    hint: 'Use `SELECT DISTINCT director FROM movies ORDER BY director ASC;`, `ORDER BY year DESC LIMIT 4;`, `ORDER BY title ASC LIMIT 5;`, `ORDER BY title ASC LIMIT 5 OFFSET 5;`.'
+  },
+  {
+    id: 5,
+    slug: 'select_queries_review',
+    title: 'SQL Review: Simple SELECT Queries',
+    shortTitle: '5. SELECT Review',
+    category: LESSON_CATEGORIES.BASICS,
+    table: 'North_american_cities',
+    difficulty: 'Medium',
+    points: 15,
+    concept: 'Practice reviewing simple SELECT queries on the North American Cities database table. Apply filtering, sorting, limits, and projection.',
+    syntax: 'SELECT city, population FROM north_american_cities\nWHERE country = "Canada"\nORDER BY population DESC;',
+    defaultQuery: 'SELECT * FROM north_american_cities;',
+    tasks: [
+      'List all Canadian cities and their populations',
+      'Order all cities in US by their latitude from north to south',
+      'List all cities west of Chicago, ordered from west to east',
+      'List the two largest cities in Mexico by population',
+      'List the third and fourth largest cities in the United States by population'
+    ],
+    hint: 'Filter by `country = "Canada"`, sort longitude/latitude or use `ORDER BY population DESC LIMIT 2`.'
+  },
+  {
+    id: 6,
+    slug: 'select_queries_with_joins',
+    title: 'SQL Lesson 6: Multi-table queries with JOINs',
+    shortTitle: '6. Multi-table JOINs',
+    category: LESSON_CATEGORIES.JOINS,
+    table: 'Movies & BoxOffice',
+    difficulty: 'Medium',
+    points: 15,
+    concept: 'Relational databases split data into multiple tables. Use INNER JOIN to combine rows from two tables based on a matching key column.',
+    syntax: 'SELECT title, domestic_sales, international_sales\nFROM movies\nJOIN boxoffice ON movies.id = boxoffice.movie_id;',
+    defaultQuery: 'SELECT * FROM movies JOIN boxoffice ON movies.id = boxoffice.movie_id;',
+    tasks: [
+      'Find the domestic and international sales for each movie',
+      'Show sales for each movie that did better internationally than domestically',
+      'List all the movies by their ratings in descending order'
+    ],
+    hint: 'Join using `INNER JOIN boxoffice ON movies.id = boxoffice.movie_id`.'
+  },
+  {
+    id: 7,
+    slug: 'select_queries_with_outer_joins',
+    title: 'SQL Lesson 7: OUTER JOINs',
+    shortTitle: '7. OUTER JOINs',
+    category: LESSON_CATEGORIES.JOINS,
+    table: 'Buildings & Employees',
+    difficulty: 'Medium',
+    points: 15,
+    concept: 'LEFT JOIN, RIGHT JOIN, and FULL JOIN include rows even when there is no matching record in the joined table.',
+    syntax: 'SELECT building_name, name, role\nFROM buildings\nLEFT JOIN employees ON buildings.building_name = employees.building;',
+    defaultQuery: 'SELECT * FROM buildings LEFT JOIN employees ON buildings.building_name = employees.building;',
+    tasks: [
+      'Find the list of all buildings that have employees',
+      'Find the list of all buildings and their capacity',
+      'List all buildings and distinct employee roles in each building (including empty buildings)'
+    ],
+    hint: 'Use `LEFT JOIN` / `RIGHT JOIN` to include unmatched rows.'
+  },
+  {
+    id: 8,
+    slug: 'select_queries_with_nulls',
+    title: 'SQL Lesson 8: A short note on NULLs',
+    shortTitle: '8. Handling NULLs',
+    category: LESSON_CATEGORIES.JOINS,
+    table: 'Buildings & Employees',
+    difficulty: 'Easy',
+    points: 10,
+    concept: 'NULL represents missing or unknown values in SQL. Always test for NULL using IS NULL or IS NOT NULL instead of equals (=).',
+    syntax: 'SELECT name, role FROM employees\nWHERE building IS NULL;',
+    defaultQuery: 'SELECT * FROM employees WHERE building IS NULL;',
+    tasks: [
+      'Find the name and role of all employees who have not been assigned to a building',
+      'Find the names of the buildings that hold no employees'
+    ],
+    hint: 'Test for missing values with `WHERE building IS NULL` or `WHERE role IS NULL`.'
+  },
+  {
+    id: 9,
+    slug: 'select_queries_with_expressions',
+    title: 'SQL Lesson 9: Queries with expressions',
+    shortTitle: '9. Expressions',
+    category: LESSON_CATEGORIES.EXPRESSIONS,
+    table: 'Movies & BoxOffice',
+    difficulty: 'Medium',
+    points: 15,
+    concept: 'SQL expressions allow mathematical computation on columns directly inside the SELECT clause. Use AS alias to rename expression columns.',
+    syntax: 'SELECT title, (domestic_sales + international_sales) / 1000000 AS total_sales_millions\nFROM movies\nJOIN boxoffice ON movies.id = boxoffice.movie_id;',
+    defaultQuery: 'SELECT title, (domestic_sales + international_sales) / 1000000 AS total_millions FROM movies JOIN boxoffice ON movies.id = boxoffice.movie_id;',
+    tasks: [
+      'List all movies and their combined sales in millions of dollars',
+      'List all movies and their ratings in percent',
+      'List all movies that were released on even numbered years'
+    ],
+    hint: 'Use math expressions like `(domestic_sales + international_sales) / 1000000` and `year % 2 = 0`.'
+  },
+  {
+    id: 10,
+    slug: 'select_queries_with_aggregates',
+    title: 'SQL Lesson 10: Queries with aggregates (Pt. 1)',
+    shortTitle: '10. Aggregates Pt. 1',
+    category: LESSON_CATEGORIES.AGGREGATES,
+    table: 'Employees',
+    difficulty: 'Medium',
+    points: 15,
+    concept: 'Aggregate functions summarize rows into a single value: COUNT(), SUM(), AVG(), MIN(), MAX(). Use GROUP BY to summarize values across categories.',
+    syntax: 'SELECT role, AVG(years_employed) AS avg_years\nFROM employees\nGROUP BY role;',
+    defaultQuery: 'SELECT role, AVG(years_employed) FROM employees GROUP BY role;',
+    tasks: [
+      'Find the longest time that an employee has been at the studio',
+      'For each role, find the average number of years employed by employees in that role',
+      'Find the total number of employee years worked in each building'
+    ],
+    hint: 'Use `MAX(years_employed)`, `AVG(years_employed)`, and `SUM(...) GROUP BY building`.'
+  },
+  {
+    id: 11,
+    slug: 'select_queries_with_aggregates_pt_2',
+    title: 'SQL Lesson 11: Queries with aggregates (Pt. 2)',
+    shortTitle: '11. Aggregates Pt. 2',
+    category: LESSON_CATEGORIES.AGGREGATES,
+    table: 'Employees',
+    difficulty: 'Medium',
+    points: 15,
+    concept: 'Filter aggregated results using HAVING. Unlike WHERE (which filters rows before grouping), HAVING filters grouped rows after aggregation.',
+    syntax: 'SELECT role, COUNT(*) FROM employees\nGROUP BY role\nHAVING COUNT(*) > 2;',
+    defaultQuery: 'SELECT role, COUNT(*) FROM employees GROUP BY role;',
+    tasks: [
+      'Find the number of Artists in the studio (without a HAVING clause)',
+      'Find the number of Employees of each role in the studio',
+      'Find the total number of years employed by all Engineers'
+    ],
+    hint: 'Use `COUNT(*)` with `WHERE role = "Artist"` or `GROUP BY role`.'
+  },
+  {
+    id: 12,
+    slug: 'select_queries_order_of_execution',
+    title: 'SQL Lesson 12: Order of execution of a Query',
+    shortTitle: '12. Order of Execution',
+    category: LESSON_CATEGORIES.EXECUTION,
+    table: 'Movies & BoxOffice',
+    difficulty: 'Hard',
+    points: 20,
+    concept: 'SQL executes queries in strict logical order: 1. FROM & JOIN, 2. WHERE, 3. GROUP BY, 4. HAVING, 5. SELECT, 6. DISTINCT, 7. ORDER BY, 8. LIMIT / OFFSET.',
+    syntax: 'SELECT director, COUNT(*) FROM movies\nGROUP BY director;',
+    defaultQuery: 'SELECT director, COUNT(*) FROM movies GROUP BY director;',
+    tasks: [
+      'Find the number of movies each director has directed',
+      'Find the total domestic and international sales that can be attributed to each director'
+    ],
+    hint: 'Remember SQL order: `FROM` -> `JOIN` -> `WHERE` -> `GROUP BY` -> `HAVING` -> `SELECT` -> `ORDER BY` -> `LIMIT`.'
+  },
+  {
+    id: 13,
+    slug: 'inserting_rows',
+    title: 'SQL Lesson 13: Inserting rows',
+    shortTitle: '13. Inserting Rows',
+    category: LESSON_CATEGORIES.MUTATION,
+    table: 'Movies & BoxOffice',
+    difficulty: 'Medium',
+    points: 15,
+    concept: 'Use INSERT INTO mytable (col1, col2) VALUES (val1, val2) to add new rows of data into a table.',
+    syntax: 'INSERT INTO movies (id, title, director, year, length_minutes)\nVALUES (15, "Toy Story 4", "Josh Cooley", 2019, 100);',
+    defaultQuery: 'SELECT * FROM movies;',
+    tasks: [
+      'Add the studio\'s new production, Toy Story 4 to the list of movies',
+      'Toy Story 4 has been released to critical acclaim! Add its boxoffice record'
+    ],
+    hint: 'Use `INSERT INTO movies (title, director, year, length_minutes) VALUES (...)`.'
+  },
+  {
+    id: 14,
+    slug: 'updating_rows',
+    title: 'SQL Lesson 14: Updating rows',
+    shortTitle: '14. Updating Rows',
+    category: LESSON_CATEGORIES.MUTATION,
+    table: 'Movies',
+    difficulty: 'Medium',
+    points: 15,
+    concept: 'Use UPDATE mytable SET col1 = val1 WHERE condition to modify existing rows in a database.',
+    syntax: 'UPDATE movies\nSET director = "John Lasseter"\nWHERE title = "A Bug\'s Life";',
+    defaultQuery: 'SELECT * FROM movies WHERE title = "A Bug\'s Life";',
+    tasks: [
+      'The director for A Bug\'s Life is incorrect, update it to John Lasseter',
+      'The year that Toy Story 2 was released is incorrect, update it to 1999',
+      'Both the title and director for Toy Story 8 are incorrect! Update both'
+    ],
+    hint: 'Use `UPDATE movies SET director = "John Lasseter" WHERE title = "A Bug\'s Life";`.'
+  },
+  {
+    id: 15,
+    slug: 'deleting_rows',
+    title: 'SQL Lesson 15: Deleting rows',
+    shortTitle: '15. Deleting Rows',
+    category: LESSON_CATEGORIES.MUTATION,
+    table: 'Movies',
+    difficulty: 'Medium',
+    points: 15,
+    concept: 'Use DELETE FROM mytable WHERE condition to remove rows. Always use a WHERE clause to avoid wiping the entire table.',
+    syntax: 'DELETE FROM movies\nWHERE year < 2005;',
+    defaultQuery: 'SELECT * FROM movies;',
+    tasks: [
+      'This database is getting too big, remove all movies released before 2005',
+      'Andrew Stanton has left the studio, remove all movies directed by him'
+    ],
+    hint: 'Always specify a `WHERE` condition when using `DELETE FROM movies WHERE ...`.'
+  },
+  {
+    id: 16,
+    slug: 'creating_tables',
+    title: 'SQL Lesson 16: Creating tables',
+    shortTitle: '16. Creating Tables',
+    category: LESSON_CATEGORIES.DDL,
+    table: 'Database Table Creation',
+    difficulty: 'Hard',
+    points: 20,
+    concept: 'Use CREATE TABLE mytable (column_name data_type constraint) to create new database tables with defined column data types (TEXT, INTEGER, FLOAT, BOOLEAN).',
+    syntax: 'CREATE TABLE Database (\n  Name TEXT,\n  Version FLOAT,\n  Download_count INTEGER\n);',
+    defaultQuery: 'CREATE TABLE Database (Name TEXT, Version FLOAT, Download_count INTEGER);',
+    tasks: [
+      'Create a new table named Database with the schema: Name (TEXT), Version (FLOAT), Download_count (INTEGER)'
+    ],
+    hint: 'Use `CREATE TABLE Database (Name TEXT, Version FLOAT, Download_count INTEGER);`.'
+  },
+  {
+    id: 17,
+    slug: 'altering_tables',
+    title: 'SQL Lesson 17: Altering tables',
+    shortTitle: '17. Altering Tables',
+    category: LESSON_CATEGORIES.DDL,
+    table: 'Movies',
+    difficulty: 'Hard',
+    points: 20,
+    concept: 'Use ALTER TABLE mytable ADD column_name data_type to alter an existing table schema.',
+    syntax: 'ALTER TABLE movies ADD Aspect_ratio FLOAT;',
+    defaultQuery: 'ALTER TABLE movies ADD Aspect_ratio FLOAT;',
+    tasks: [
+      'Add a new column named Aspect_ratio with a FLOAT data type',
+      'Add another column named Language with a TEXT data type to have DEFAULT "English"'
+    ],
+    hint: 'Use `ALTER TABLE Movies ADD COLUMN Aspect_ratio FLOAT;`.'
+  },
+  {
+    id: 18,
+    slug: 'dropping_tables',
+    title: 'SQL Lesson 18: Dropping tables',
+    shortTitle: '18. Dropping Tables',
+    category: LESSON_CATEGORIES.DDL,
+    table: 'Movies & BoxOffice',
+    difficulty: 'Easy',
+    points: 10,
+    concept: 'Use DROP TABLE IF EXISTS mytable to permanently remove a table and all of its data from the database.',
+    syntax: 'DROP TABLE IF EXISTS Movies;\nDROP TABLE IF EXISTS BoxOffice;',
+    defaultQuery: 'DROP TABLE IF EXISTS Movies;',
+    tasks: [
+      'We\'ve cleaned up our database, remove the Movies table',
+      'And drop the BoxOffice table as well'
+    ],
+    hint: 'Use `DROP TABLE IF EXISTS Movies;` and `DROP TABLE IF EXISTS BoxOffice;`.'
+  }
+];
+
+export const TEST_PRESETS = [
+  {
+    id: 'full',
+    name: 'Comprehensive Mastery Exam (All 18 Lessons)',
+    description: 'Covers the full SQL curriculum from basic SELECT queries to DDL table schema operations.',
+    lessonIds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+    defaultDuration: 45 * 60,
+    badge: 'Standard Certification'
+  },
+  {
+    id: 'select_foundations',
+    name: 'SELECT & Query Foundations (Lessons 1-5)',
+    description: 'Focused test on basic querying, constraints, filtering, text matching, and sorting.',
+    lessonIds: [1, 2, 3, 4, 5],
+    defaultDuration: 20 * 60,
+    badge: 'Core SQL'
+  },
+  {
+    id: 'joins_aggregates',
+    name: 'Relational JOINs & Aggregations (Lessons 6-12)',
+    description: 'Multi-table queries, inner/outer joins, expressions, grouping, aggregate functions, and execution order.',
+    lessonIds: [6, 7, 8, 9, 10, 11, 12],
+    defaultDuration: 30 * 60,
+    badge: 'Intermediate'
+  },
+  {
+    id: 'dml_ddl',
+    name: 'Database Mutation & Schema Management (Lessons 13-18)',
+    description: 'INSERT, UPDATE, DELETE, CREATE TABLE, ALTER TABLE, and DROP TABLE operations.',
+    lessonIds: [13, 14, 15, 16, 17, 18],
+    defaultDuration: 25 * 60,
+    badge: 'Database Admin'
+  }
+];
