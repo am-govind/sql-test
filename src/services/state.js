@@ -95,11 +95,11 @@ class StateService {
       remainingSec: 45 * 60,
       startTime: null,
       submittedAt: null,
-      proctorMode: 'strict', // 'strict' (instant submit) | 'strike_1' (1 warning allowed)
+      proctorMode: 'strike_1', // 'strike_1' (1 warning allowed, 2nd violation auto-submits) | 'strict'
       fullscreenEnforced: false,
       violations: [], // [{ type, label, timestamp, timeElapsedSec }]
       strikesUsed: 0,
-      maxStrikesAllowed: 0, // 0 for strict, 1 for strike_1
+      maxStrikesAllowed: 1, // 1 warning for strike_1
       submissionReason: null, // 'manual' | 'tab_switch_autosubmit' | 'time_expired' | 'strike_limit'
       activeLessonStartTime: null,
     };
@@ -147,7 +147,7 @@ class StateService {
     presetId = 'full',
     selectedLessonIds = null,
     durationSec = 45 * 60,
-    proctorMode = 'strict',
+    proctorMode = 'strike_1',
     fullscreenEnforced = false
   }) {
     const lessonIds = selectedLessonIds && selectedLessonIds.length > 0 

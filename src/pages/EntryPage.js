@@ -13,7 +13,7 @@ export function renderEntryPage(container, { onStartExam }) {
   let presetId = 'full';
   let lessonIds = LESSONS.map((lesson) => lesson.id);
   let durationSec = 45 * 60;
-  let proctorMode = 'strict';
+  let proctorMode = 'strike_1';
   let fullscreenEnforced = true;
 
   const history = state.getHistory();
@@ -87,8 +87,8 @@ export function renderEntryPage(container, { onStartExam }) {
             <label class="block">
               <span class="text-xs font-bold uppercase tracking-wide text-bolt-muted">Tab-switch policy</span>
               <select id="select-proctor-mode" class="mt-1 w-full px-3 py-2 text-sm">
-                <option value="strict" selected>Strict: submit immediately</option>
-                <option value="strike_1">Allow one warning</option>
+                <option value="strike_1" selected>1 Warning (Warning on 1st offense, auto-submit on 2nd)</option>
+                <option value="strict">Strict: submit immediately on 1st offense</option>
               </select>
             </label>
           </div>
@@ -99,7 +99,7 @@ export function renderEntryPage(container, { onStartExam }) {
           </label>
 
           <ul class="space-y-1.5 text-xs text-bolt-caption">
-            <li>Switching tabs or minimising the window ends the exam and submits your work.</li>
+            <li>1st tab-switch or focus loss shows a warning modal; 2nd offense automatically submits the exam and emails the report.</li>
             <li>Each lesson unlocks the next once every task passes.</li>
             <li>A full report with per-lesson timings and the proctor log is produced on submission.</li>
           </ul>
