@@ -27,7 +27,7 @@ export function navbarMarkup() {
       <div class="flex items-center gap-4">
         <span class="hidden text-xs text-bolt-caption md:inline">
           ${escapeHtml(session.studentName)}
-          <span class="text-bolt-amber">(${escapeHtml(session.studentId)})</span>
+          <span class="text-bolt-amber">(${escapeHtml(session.rollNumber)})</span>
         </span>
 
         <div id="nav-violations" class="hidden items-center gap-1.5 text-xs text-bolt-caption sm:flex">

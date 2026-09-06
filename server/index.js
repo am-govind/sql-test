@@ -12,6 +12,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
+import { loadEnvFile } from './load-env.js';
+import { mountApiRoutes } from './api-routes.js';
+
+loadEnvFile();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -28,6 +32,8 @@ const UPSTREAM = 'https://sqlbolt.com';
 const SQLBOLT_PATH_PATTERN = /^\/(lesson|topic|cs)(\/|$)/;
 
 const app = express();
+
+mountApiRoutes(app);
 
 app.use(
   createProxyMiddleware({

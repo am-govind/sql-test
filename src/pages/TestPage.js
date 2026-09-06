@@ -49,8 +49,7 @@ export function renderTestPage(container, { onSubmitExam }) {
     timer.stop();
     proctor.stop();
     workspace?.destroy?.();
-    state.submitTest(reason);
-    onSubmitExam?.();
+    state.submitTest(reason).then(() => onSubmitExam?.());
   }
 
   function renderProgress() {

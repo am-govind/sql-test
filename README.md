@@ -1,8 +1,10 @@
 # 🗄️ SQLProctor — Proctored SQL Exam Platform
 
-> A browser-based, proctored SQL assessment tool built on top of [SQLBolt](https://sqlbolt.com) interactive lessons. Instructors can send students a link, collect graded, violation-tracked exam submissions directly to their inbox — zero backend required.
+> Admin + student platform for proctored SQLBolt exams. Admins configure multiple exams, view leaderboards and analytics; students enter name and roll number, complete exercises under proctoring, and receive a submission confirmation only.
 
 **Live Demo:** [sql-test-six.vercel.app](https://sql-test-six.vercel.app)
+
+> **Platform setup:** See [SUPABASE_SETUP.md](SUPABASE_SETUP.md) for Supabase migration, env vars, and admin onboarding.
 
 ---
 
@@ -152,30 +154,11 @@ Navigate to `http://localhost:3000` in your browser. You should see the **Procto
 
 ### Changing the recipient email
 
-All exam result emails are sent to the address configured in `src/services/state.js`:
-
-```js
-// src/services/state.js
-const RECIPIENT_EMAIL = 'your-email@example.com';
-```
-
-Replace this with your own email address. After deploying, submit the form once from your live site and **activate the FormSubmit link** sent to your inbox (only needed once per email address per domain).
-
-> **Tip:** As an alternative to raw email confirmation, you can use the FormSubmit hash token provided in the activation email:
-> ```js
-> const RECIPIENT_EMAIL = 'your-hash-token-here'; // No activation needed
-> ```
+> **Deprecated.** Scores are now stored in Supabase and viewed in the admin dashboard. See [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 
 ### Changing exam defaults
 
-Default exam settings live at the top of `src/pages/EntryPage.js`:
-
-```js
-let presetId = 'full';          // Active curriculum preset
-let durationSec = 45 * 60;     // Default 45 minutes
-let proctorMode = 'strike_1';  // 'strike_1' | 'strict'
-let fullscreenEnforced = true;  // Require fullscreen on start
-```
+Exam settings (lessons, duration, proctor mode) are configured per exam in the **admin portal** at `/admin/exams`.
 
 ### Adding or editing lessons
 
@@ -299,26 +282,11 @@ The proctoring engine (`src/services/proctor.js`) monitors three categories of s
 
 ---
 
-## 📧 Email Reporting
+## 📧 Scores & reporting
 
-On every exam submission (manual, timed-out, or auto-submitted), a full report is sent via **FormSubmit's AJAX API** to the configured `RECIPIENT_EMAIL`. The report includes:
+Exam results are persisted to **Supabase** when a student submits. Admins view scores, lesson breakdowns, and violation logs in the admin portal (`/admin`). Students only see a submission confirmation screen.
 
-- Student name & ID
-- Score, percentage, and grade
-- Submission method (manual / timer / strike limit)
-- Total time taken
-- Number of proctoring violations
-- Full infraction log with timestamps
-- Per-lesson completion status & submitted SQL code
-
-### Setting Up FormSubmit (One-Time)
-
-1. Deploy the app with your email in `RECIPIENT_EMAIL`.
-2. Submit an exam from the live URL (or have a student do so).
-3. Open the activation email from FormSubmit and click **Activate Form**.
-4. All future submissions go straight to your inbox — no repeat activation needed.
-
-> If you encounter "Not a valid link" errors during activation, see [Troubleshooting](#-troubleshooting).
+The previous FormSubmit email integration has been removed in favour of the admin dashboard.
 
 ---
 
