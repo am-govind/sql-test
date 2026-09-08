@@ -48,11 +48,15 @@ export async function renderStudentDashboardPage(container) {
   try {
     const exams = await fetchEnrolledExams();
 
-    if (!exams.length) {
+    if (!exams || exams.length === 0) {
       listEl.innerHTML = `
-        <p class="rounded-[0.25em] bg-bolt-callout p-4 text-sm text-bolt-slate">
-          No active exams are assigned to you. Ask your instructor to enroll you.
-        </p>
+        <div class="rounded-[0.25em] bg-white border border-bolt-border p-6 text-center">
+          <div class="text-3xl mb-2">📋</div>
+          <h3 class="font-display text-base font-bold text-bolt-ink">No active exams right now</h3>
+          <p class="pt-1 text-xs text-bolt-caption max-w-sm mx-auto">
+            You are not enrolled in any active exams at this moment. If you are expecting an exam, ask your instructor or administrator to enroll you.
+          </p>
+        </div>
       `;
       return;
     }
@@ -82,10 +86,30 @@ export async function renderStudentDashboardPage(container) {
       });
     });
   } catch (err) {
+    // If it was just an empty or missing response, show friendly empty state
+    if (err.status === 404 || err.message?.includes('No active exams')) {
+      listEl.innerHTML = `
+        <div class="rounded-[0.25em] bg-white border border-bolt-border p-6 text-center">
+          <div class="text-3xl mb-2">📋</div>
+          <h3 class="font-display text-base font-bold text-bolt-ink">No active exams right now</h3>
+          <p class="pt-1 text-xs text-bolt-caption max-w-sm mx-auto">
+            You are not enrolled in any active exams at this moment.
+          </p>
+        </div>
+      `;
+      return;
+    }
+
     listEl.innerHTML = `
-      <p class="rounded-[0.25em] border border-bolt-red bg-bolt-callout p-4 text-sm text-bolt-red">
-        ${escapeHtml(err.message)}
-      </p>
+      <div class="rounded-[0.25em] border border-bolt-red bg-white p-4">
+        <p class="text-sm font-bold text-bolt-red">Could not load exams</p>
+        <p class="text-xs text-bolt-caption mt-1">${escapeHtml(err.message)}</p>
+        <button type="button" id="btn-retry-exams" class="btn-secondary text-xs mt-3 px-3 py-1">Try again</button>
+      </div>
     `;
+
+    listEl.querySelector('#btn-retry-exams')?.addEventListener('click', () => {
+      renderStudentDashboardPage(container);
+    });
   }
 }
