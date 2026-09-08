@@ -3,6 +3,7 @@
  */
 
 import { adminFetch } from '../../lib/supabase.js';
+import { renderDobSelector, initDobPicker } from '../../components/DobPicker.js';
 import { navigate } from '../../router.js';
 import { sound } from '../../services/sound.js';
 import { adminShell, wireAdminShell, escapeHtml } from './adminShell.js';
@@ -29,9 +30,9 @@ export async function renderStudentRosterPage(container) {
               <input id="input-email" type="email" class="mt-1 w-full px-3 py-2 text-sm" />
             </label>
             <label class="block sm:col-span-2">
-              <span class="text-xs font-bold uppercase text-bolt-muted">Date of birth *</span>
-              <input id="input-dob" type="date" required class="mt-1 w-full px-3 py-2 text-sm" />
-              <span class="pt-1 text-xs text-bolt-caption">Used as the student's login password. Not shown again after saving.</span>
+              <span class="text-xs font-bold uppercase text-bolt-muted">Date of birth (DD / MM / YYYY) *</span>
+              ${renderDobSelector({ id: 'input-dob', defaultYear: 2004, defaultMonth: 1, defaultDay: 1 })}
+              <span class="pt-1 text-xs text-bolt-caption block">Used as the student's login password. Not shown again after saving.</span>
             </label>
             <div class="sm:col-span-2">
               <p id="form-error" class="hidden text-sm text-bolt-red"></p>
@@ -49,6 +50,7 @@ export async function renderStudentRosterPage(container) {
   });
 
   wireAdminShell(container);
+  initDobPicker(container, 'input-dob');
   const rosterBody = container.querySelector('#roster-body');
   const formError = container.querySelector('#form-error');
 
