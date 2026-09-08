@@ -1,10 +1,10 @@
 import {
-  authenticateStudent,
   checkLoginRateLimit,
   clearLoginAttempts,
   signStudentToken,
   normalizeDob,
 } from '../_lib/student-auth.js';
+import { authenticateStudent } from '../_lib/students.js';
 import { readJsonBody, sendJson } from '../_lib/http.js';
 
 export default async function handler(req, res) {
