@@ -189,10 +189,22 @@ export async function listEnrolledExamsForStudent(studentId) {
 
   const { data: enrollments, error: enrollError } = await supabase
     .from('exam_enrollments')
-    .select('exam_id, exams(id, title, description, lesson_ids, duration_sec, status)')
+    .select('exam_id')
     .eq('student_id', studentId);
 
   if (enrollError) throw enrollError;
+  if (!enrollments || enrollments.length === 0) return [];
+
+  const examIds = enrollments.map((e) => e.exam_id);
+
+  const { data: exams, error: examsError } = await supabase
+    .from('exams')
+    .select('id, title, description, lesson_ids, duration_sec, status')
+    .in('id', examIds)
+    .eq('status', 'active');
+
+  if (examsError) throw examsError;
+  if (!exams || exams.length === 0) return [];
 
   const { data: submitted, error: subError } = await supabase
     .from('submissions')
@@ -203,17 +215,14 @@ export async function listEnrolledExamsForStudent(studentId) {
 
   const submittedIds = new Set((submitted || []).map((s) => s.exam_id));
 
-  return (enrollments || [])
-    .map((row) => row.exams)
-    .filter((exam) => exam && exam.status === 'active')
-    .map((exam) => ({
-      id: exam.id,
-      title: exam.title,
-      description: exam.description,
-      lessonCount: exam.lesson_ids?.length ?? 0,
-      durationSec: exam.duration_sec,
-      alreadySubmitted: submittedIds.has(exam.id),
-    }));
+  return exams.map((exam) => ({
+    id: exam.id,
+    title: exam.title,
+    description: exam.description,
+    lessonCount: exam.lesson_ids?.length ?? 0,
+    durationSec: exam.duration_sec,
+    alreadySubmitted: submittedIds.has(exam.id),
+  }));
 }
 
 export async function getEnrolledExamForStudent(studentId, examId) {

@@ -19,6 +19,6 @@ export default async function handler(req, res) {
     sendJson(res, 200, { exams });
   } catch (err) {
     console.error('[api/student/exams]', err);
-    sendJson(res, 500, { error: 'Failed to load exams' });
+    sendJson(res, 500, { error: err.message || 'Failed to load exams' });
   }
 }
