@@ -168,10 +168,14 @@ export async function renderStudentRosterPage(container) {
   const bulkStatus = container.querySelector('#bulk-status');
   const uploadBulkBtn = container.querySelector('#btn-upload-bulk');
 
+  // Convert a cell value to YYYY-MM-DD.
+  // Handles: JS Date objects (from XLSX date cells), ISO strings (YYYY-MM-DD).
+  // The template mandates YYYY-MM-DD so no DD/MM ambiguity logic is needed.
   function normalizeDateVal(val) {
     if (!val) return '';
+
+    // XLSX date cell → JS Date object
     if (val instanceof Date && !isNaN(val)) {
-      // Use local date methods to avoid UTC shift
       const y = val.getFullYear();
       const m = String(val.getMonth() + 1).padStart(2, '0');
       const d = String(val.getDate()).padStart(2, '0');
@@ -179,60 +183,13 @@ export async function renderStudentRosterPage(container) {
     }
 
     const str = String(val).trim();
-    // Support YYYY-MM-DD or YYYY/MM/DD
+    // YYYY-MM-DD or YYYY/MM/DD (standard ISO — what the template uses)
     const iso = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
     if (iso) {
       return `${iso[1]}-${iso[2].padStart(2, '0')}-${iso[3].padStart(2, '0')}`;
     }
 
-    // Support DD/MM/YYYY or DD-MM-YYYY or MM/DD/YYYY
-    const slashed = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
-    if (slashed) {
-      const part1 = parseInt(slashed[1], 10);
-      const part2 = parseInt(slashed[2], 10);
-      const year = slashed[3];
-
-      // If part1 > 12, part1 must be day (DD/MM/YYYY)
-      // If part2 > 12, part2 must be day (MM/DD/YYYY)
-      // Standard in Indian institutions is DD/MM/YYYY
-      let day = part1;
-      let month = part2;
-      if (part2 > 12 && part1 <= 12) {
-        month = part1;
-        day = part2;
-      }
-
-      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    }
-
-    return str;
-  }
-
-  // Parse raw text CSV preserving original cell strings (no date auto-detection).
-  // This prevents XLSX from converting "09/02/2004" (DD/MM) into an Excel
-  // serial number by mis-reading it as MM/DD (US format).
-  function parseCsvRows(text) {
-    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-    if (lines.length < 2) return [];
-    const splitCsv = (line) => {
-      const out = [];
-      let cur = '';
-      let inQ = false;
-      for (const ch of line) {
-        if (ch === '"') { inQ = !inQ; }
-        else if (ch === ',' && !inQ) { out.push(cur.trim()); cur = ''; }
-        else { cur += ch; }
-      }
-      out.push(cur.trim());
-      return out;
-    };
-    const headers = splitCsv(lines[0]);
-    return lines.slice(1).map((line) => {
-      const vals = splitCsv(line);
-      const row = {};
-      headers.forEach((h, i) => { row[h] = vals[i] ?? ''; });
-      return row;
-    });
+    return '';
   }
 
   fileInput.addEventListener('change', async (e) => {
@@ -244,22 +201,13 @@ export async function renderStudentRosterPage(container) {
 
     try {
       const buffer = await file.arrayBuffer();
-      let rows;
-
-      if (file.name.toLowerCase().endsWith('.csv')) {
-        // CSV: parse as plain text so date strings like "09/02/2004" are
-        // preserved exactly. XLSX auto-detection would convert them to
-        // Excel serial numbers (MM/DD US interpretation) and we'd lose
-        // the original string needed for our DD/MM/YYYY parser.
-        const text = new TextDecoder('utf-8').decode(buffer);
-        rows = parseCsvRows(text);
-      } else {
-        // XLSX: use cellDates:true so Excel date cells become JS Date objects,
-        // then normalizeDateVal() reads them with local getters (no UTC shift).
-        const workbook = XLSX.read(buffer, { raw: false, cellDates: true });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
-      }
+      // Use cellDates:true so Excel date cells become JS Date objects which
+      // normalizeDateVal() converts using local getters (no UTC shift).
+      // Dates entered as text (YYYY-MM-DD) are left as strings and matched
+      // by the ISO regex. The template and UI mandate YYYY-MM-DD format.
+      const workbook = XLSX.read(buffer, { raw: false, cellDates: true });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
 
       parsedStudents = [];
       for (const r of rows) {
