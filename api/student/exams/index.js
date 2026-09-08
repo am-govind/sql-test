@@ -1,6 +1,6 @@
-import { requireStudent } from '../_lib/student-auth.js';
-import { listEnrolledExamsForStudent } from '../_lib/students.js';
-import { sendJson } from '../_lib/http.js';
+import { requireStudent } from '../../_lib/student-auth.js';
+import { listEnrolledExamsForStudent } from '../../_lib/students.js';
+import { sendJson } from '../../_lib/http.js';
 
 export default async function handler(req, res) {
   try {
