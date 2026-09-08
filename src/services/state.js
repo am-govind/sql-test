@@ -3,7 +3,7 @@
  */
 
 import { LESSONS } from '../data/lessons.js';
-import { postSubmission } from '../lib/api.js';
+import { postStudentSubmission } from '../lib/studentSession.js';
 
 const STORAGE_KEY_ACTIVE = 'sqlproctor_active_session_v2';
 
@@ -18,6 +18,7 @@ class StateService {
       status: 'not_started',
       examId: null,
       examTitle: '',
+      studentId: null,
       studentName: '',
       rollNumber: '',
       selectedLessonIds: LESSONS.map((l) => l.id),
@@ -76,6 +77,7 @@ class StateService {
   startTest({
     examId,
     examTitle = '',
+    studentId,
     studentName,
     rollNumber,
     selectedLessonIds,
@@ -99,6 +101,7 @@ class StateService {
       status: 'in_progress',
       examId,
       examTitle,
+      studentId,
       studentName: studentName.trim(),
       rollNumber: rollNumber.trim(),
       selectedLessonIds: lessonIds,
@@ -261,10 +264,8 @@ class StateService {
     this.saveSession();
 
     try {
-      await postSubmission({
+      await postStudentSubmission({
         examId: this.session.examId,
-        studentName: this.session.studentName,
-        rollNumber: this.session.rollNumber,
         submissionReason: reason,
         analytics: this.session.analytics,
         violations: this.session.violations,

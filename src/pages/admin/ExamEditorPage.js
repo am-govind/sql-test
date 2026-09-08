@@ -3,7 +3,7 @@
  */
 
 import { LESSONS, LESSON_CATEGORIES } from '../../data/lessons.js';
-import { supabase } from '../../lib/supabase.js';
+import { supabase, adminFetch } from '../../lib/supabase.js';
 import { navigate } from '../../router.js';
 import { sound } from '../../services/sound.js';
 import { adminShell, wireAdminShell, escapeHtml } from './adminShell.js';
@@ -109,9 +109,19 @@ export async function renderExamEditorPage(container, { examId = null }) {
         </section>
 
         ${examId ? `
+          <section id="enrollment-section" class="space-y-3 rounded-[0.25em] border border-bolt-border p-4">
+            <div class="flex items-center justify-between">
+              <h2 class="font-display text-base text-bolt-slate">Enrolled students</h2>
+              <button type="button" id="btn-save-enrollment" class="btn-secondary text-xs">Save enrollment</button>
+            </div>
+            <input id="enrollment-search" type="text" placeholder="Search by name or roll…" class="w-full px-3 py-2 text-sm" />
+            <div id="enrollment-list" class="max-h-48 space-y-1 overflow-y-auto text-sm">
+              <p class="text-bolt-muted">Loading roster…</p>
+            </div>
+            <p id="enrollment-error" class="hidden text-sm text-bolt-red"></p>
+          </section>
           <div class="rounded-[0.25em] bg-bolt-callout p-3 text-xs text-bolt-slate">
-            Student link:
-            <code class="block pt-1 break-all font-mono text-bolt-link">${escapeHtml(studentLink(examId))}</code>
+            Students must sign in at <code>/student/login</code> with roll/email + DOB before they can open this exam.
           </div>
         ` : ''}
 
@@ -177,6 +187,67 @@ export async function renderExamEditorPage(container, { examId = null }) {
 
     navigate(examId ? '/admin/exams' : `/admin/exams/${data.id}/edit`);
   });
+
+  if (examId) {
+    wireEnrollmentSection(container, examId);
+  }
+}
+
+async function wireEnrollmentSection(container, examId) {
+  const listEl = container.querySelector('#enrollment-list');
+  const searchEl = container.querySelector('#enrollment-search');
+  const errorEl = container.querySelector('#enrollment-error');
+  let allStudents = [];
+  let enrolledIds = new Set();
+
+  try {
+    const [{ students }, { enrollments }] = await Promise.all([
+      adminFetch('/api/admin/students'),
+      adminFetch(`/api/admin/exams/${examId}/enrollments`),
+    ]);
+    allStudents = students;
+    enrolledIds = new Set(enrollments.map((e) => e.studentId));
+  } catch (err) {
+    listEl.innerHTML = `<p class="text-bolt-red">${escapeHtml(err.message)}</p>`;
+    return;
+  }
+
+  function renderList() {
+    const q = searchEl.value.trim().toLowerCase();
+    const filtered = allStudents.filter((s) => {
+      if (!q) return true;
+      return s.fullName.toLowerCase().includes(q)
+        || s.rollNumber.toLowerCase().includes(q)
+        || (s.email && s.email.toLowerCase().includes(q));
+    });
+
+    listEl.innerHTML = filtered.map((s) => `
+      <label class="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 hover:bg-bolt-menu">
+        <input type="checkbox" class="enroll-check accent-[#2074e7]" value="${s.id}" ${enrolledIds.has(s.id) ? 'checked' : ''} />
+        <span>${escapeHtml(s.fullName)} <span class="font-mono text-xs text-bolt-muted">(${escapeHtml(s.rollNumber)})</span></span>
+      </label>
+    `).join('') || '<p class="text-bolt-caption">No students match. Add students in the roster first.</p>';
+  }
+
+  renderList();
+  searchEl.addEventListener('input', renderList);
+
+  container.querySelector('#btn-save-enrollment')?.addEventListener('click', async () => {
+    sound.playClick();
+    errorEl.classList.add('hidden');
+    const studentIds = [...container.querySelectorAll('.enroll-check:checked')].map((cb) => cb.value);
+    try {
+      await adminFetch(`/api/admin/exams/${examId}/enrollments`, {
+        method: 'PUT',
+        body: JSON.stringify({ studentIds }),
+      });
+      enrolledIds = new Set(studentIds);
+      sound.playSuccessChime();
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.classList.remove('hidden');
+    }
+  });
 }
 
 function durationOptions(selected) {
@@ -190,9 +261,4 @@ function durationOptions(selected) {
   return options.map(([sec, label]) =>
     `<option value="${sec}" ${sec === selected ? 'selected' : ''}>${label}</option>`
   ).join('');
-}
-
-function studentLink(examId) {
-  const base = import.meta.env.BASE_URL.replace(/\/$/, '') || '';
-  return `${window.location.origin}${base}/exam/${examId}`;
 }

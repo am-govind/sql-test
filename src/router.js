@@ -42,6 +42,7 @@ export function matchRoute(pathname) {
   }
 
   const routes = [
+    { name: 'adminStudents', pattern: /^\/admin\/students$/ },
     { name: 'adminLogin', pattern: /^\/admin\/login$/ },
     { name: 'adminDashboard', pattern: /^\/admin$/ },
     { name: 'adminExams', pattern: /^\/admin\/exams$/ },
@@ -49,6 +50,8 @@ export function matchRoute(pathname) {
     { name: 'adminExamEdit', pattern: /^\/admin\/exams\/([^/]+)\/edit$/ },
     { name: 'adminExamSubmissions', pattern: /^\/admin\/exams\/([^/]+)\/submissions$/ },
     { name: 'adminSubmissionDetail', pattern: /^\/admin\/submissions\/([^/]+)$/ },
+    { name: 'studentLogin', pattern: /^\/student\/login$/ },
+    { name: 'studentDashboard', pattern: /^\/student$/ },
     { name: 'studentExamDone', pattern: /^\/exam\/([^/]+)\/done$/ },
     { name: 'studentExamTake', pattern: /^\/exam\/([^/]+)\/take$/ },
     { name: 'studentExamEntry', pattern: /^\/exam\/([^/]+)$/ },

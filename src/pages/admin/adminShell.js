@@ -17,6 +17,7 @@ export function adminShell({ title, body, width = 'max-w-6xl' }) {
           <nav class="flex flex-wrap items-center gap-3 text-sm">
             <a href="/admin" data-nav class="text-bolt-link hover:underline">Dashboard</a>
             <a href="/admin/exams" data-nav class="text-bolt-link hover:underline">Exams</a>
+            <a href="/admin/students" data-nav class="text-bolt-link hover:underline">Students</a>
             <button id="btn-admin-signout" type="button" class="text-bolt-muted hover:text-bolt-red">Sign out</button>
           </nav>
         </div>
