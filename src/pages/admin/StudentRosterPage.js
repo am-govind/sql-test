@@ -272,12 +272,13 @@ export async function renderStudentRosterPage(container) {
         body: JSON.stringify({ students: parsedStudents }),
       });
 
-      bulkStatus.className = 'mt-3 text-xs p-3 rounded bg-emerald-50 text-emerald-800 border border-emerald-200';
+      const hasErrors = res.errors?.length > 0;
+      bulkStatus.className = `mt-3 text-xs p-3 rounded border ${hasErrors ? 'bg-amber-50 text-amber-900 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'}`;
       bulkStatus.innerHTML = `
         <strong>Upload complete!</strong><br/>
         • ${res.inserted || 0} added<br/>
         • ${res.updated || 0} updated with new details
-        ${res.errors?.length ? `<br/>• ${res.errors.length} failed rows` : ''}
+        ${hasErrors ? `<br/>• ${res.errors.length} failed:<br/>${res.errors.map(e => `&nbsp;&nbsp;Row ${e.row}: ${escapeHtml(e.error)}`).join('<br/>')}` : ''}
       `;
       bulkStatus.classList.remove('hidden');
       sound.playSuccessChime();
