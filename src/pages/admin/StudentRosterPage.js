@@ -273,8 +273,8 @@ export async function renderStudentRosterPage(container) {
       bulkStatus.className = 'mt-3 text-xs p-3 rounded bg-emerald-50 text-emerald-800 border border-emerald-200';
       bulkStatus.innerHTML = `
         <strong>Upload complete!</strong><br/>
-        • ${res.inserted} added<br/>
-        • ${res.skipped} already existed (skipped)
+        • ${res.inserted || 0} added<br/>
+        • ${res.updated || 0} updated with new details
         ${res.errors?.length ? `<br/>• ${res.errors.length} failed rows` : ''}
       `;
       bulkStatus.classList.remove('hidden');
