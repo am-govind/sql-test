@@ -7,9 +7,10 @@ import { navigate } from '../../router.js';
 import { supabase } from '../../lib/supabase.js';
 import { sound } from '../../services/sound.js';
 
-export function adminShell({ title, body, width = 'max-w-6xl' }) {
+export function adminShell({ title, body, width = 'max-w-6xl', cardOverflow = 'overflow-hidden' }) {
   return boltShell({
     width,
+    cardOverflow,
     header: `
       <header class="border-b border-bolt-border px-6 py-4">
         <div class="flex flex-wrap items-center justify-between gap-3">

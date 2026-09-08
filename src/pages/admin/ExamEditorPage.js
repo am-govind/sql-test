@@ -42,6 +42,7 @@ export async function renderExamEditorPage(container, { examId = null }) {
   container.innerHTML = adminShell({
     title: examId ? 'Edit exam' : 'New exam',
     width: 'max-w-4xl',
+    cardOverflow: 'overflow-visible',
     body: `
       <form id="exam-editor-form" class="space-y-6 px-6 py-6">
         <section class="space-y-3">
@@ -133,14 +134,14 @@ export async function renderExamEditorPage(container, { examId = null }) {
               </button>
 
               <!-- Dropdown Panel (hidden by default) -->
-              <div id="enrollment-dropdown-menu" class="hidden absolute z-30 left-0 right-0 mt-1 bg-white border border-bolt-border rounded-md shadow-lg overflow-hidden">
+              <div id="enrollment-dropdown-menu" class="hidden absolute z-50 left-0 right-0 mt-1 bg-white border border-bolt-border rounded-md shadow-xl">
                 <div class="p-2 border-b border-bolt-border bg-slate-50 flex items-center gap-2">
                   <input id="enrollment-search" type="text" placeholder="Search by name, roll no, or email…" class="w-full px-2.5 py-1.5 text-xs border border-bolt-border rounded bg-white focus:outline-none focus:ring-1 focus:ring-bolt-blue" />
                   <button type="button" id="btn-select-all-students" class="text-xs text-bolt-blue font-semibold hover:underline whitespace-nowrap px-1">All</button>
                   <span class="text-bolt-border">|</span>
                   <button type="button" id="btn-clear-all-students" class="text-xs text-bolt-muted hover:text-bolt-red hover:underline whitespace-nowrap px-1">Clear</button>
                 </div>
-                <div id="enrollment-list" class="max-h-56 space-y-0.5 overflow-y-auto p-1.5 text-xs divide-y divide-slate-100">
+                <div id="enrollment-list" class="space-y-0.5 p-1.5 text-xs divide-y divide-slate-100" style="max-height: 240px; overflow-y: scroll; -webkit-overflow-scrolling: touch;">
                   <p class="text-bolt-muted p-2">Loading roster…</p>
                 </div>
               </div>

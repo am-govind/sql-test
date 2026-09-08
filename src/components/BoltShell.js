@@ -9,11 +9,11 @@
  * @param {string} options.body    markup for the card body
  * @param {string} [options.width] max width of the card
  */
-export function boltShell({ header, body, width = 'max-w-[1170px]' }) {
+export function boltShell({ header, body, width = 'max-w-[1170px]', cardOverflow = 'overflow-hidden' }) {
   return `
     <div class="min-h-screen bg-bolt-bg py-6 px-3 sm:px-5">
       <div class="${width} mx-auto animate-fade-in">
-        <div class="bolt-card overflow-hidden">
+        <div class="bolt-card ${cardOverflow}">
           ${header}
           ${body}
         </div>
