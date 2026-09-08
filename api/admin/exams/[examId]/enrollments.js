@@ -1,6 +1,6 @@
-import { requireAdmin } from '../../_lib/auth.js';
-import { listEnrollmentsForExam, setExamEnrollments } from '../../_lib/students.js';
-import { readJsonBody, sendJson } from '../../_lib/http.js';
+import { requireAdmin } from '../../../_lib/auth.js';
+import { listEnrollmentsForExam, setExamEnrollments } from '../../../_lib/students.js';
+import { readJsonBody, sendJson } from '../../../_lib/http.js';
 
 export default async function handler(req, res) {
   const auth = await requireAdmin(req);
