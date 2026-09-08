@@ -141,7 +141,7 @@ export async function renderExamEditorPage(container, { examId = null }) {
                   <span class="text-bolt-border">|</span>
                   <button type="button" id="btn-clear-all-students" class="text-xs text-bolt-muted hover:text-bolt-red hover:underline whitespace-nowrap px-1">Clear</button>
                 </div>
-                <div id="enrollment-list" class="space-y-0.5 p-1.5 text-xs divide-y divide-slate-100" style="max-height: 240px; overflow-y: scroll; -webkit-overflow-scrolling: touch;">
+                <div id="enrollment-list" class="space-y-0.5 p-1.5 text-xs divide-y divide-slate-100 overflow-y-auto" style="max-height: 185px;">
                   <p class="text-bolt-muted p-2">Loading roster…</p>
                 </div>
               </div>
