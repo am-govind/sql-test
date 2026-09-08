@@ -62,6 +62,45 @@ export async function listStudents() {
   return (data || []).map(mapStudentRow);
 }
 
+export async function batchCreateStudents(studentsList) {
+  const supabase = createServiceClient();
+  const results = { inserted: 0, skipped: 0, errors: [] };
+
+  for (let i = 0; i < studentsList.length; i++) {
+    const s = studentsList[i];
+    if (!s.fullName || !s.rollNumber || !s.dob) {
+      results.errors.push({ row: i + 1, error: 'Full name, roll number, and date of birth are required' });
+      continue;
+    }
+
+    try {
+      const dobHash = await hashDob(s.dob);
+      const { error } = await supabase
+        .from('students')
+        .insert({
+          full_name: s.fullName.trim(),
+          roll_number: s.rollNumber.trim(),
+          email: s.email?.trim() || null,
+          dob_hash: dobHash,
+        });
+
+      if (error) {
+        if (error.code === '23505') {
+          results.skipped += 1;
+        } else {
+          results.errors.push({ row: i + 1, error: error.message });
+        }
+      } else {
+        results.inserted += 1;
+      }
+    } catch (err) {
+      results.errors.push({ row: i + 1, error: err.message });
+    }
+  }
+
+  return results;
+}
+
 export async function createStudent({ fullName, rollNumber, email, dob }) {
   const supabase = createServiceClient();
   const dobHash = await hashDob(dob);

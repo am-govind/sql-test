@@ -1,5 +1,5 @@
 import { requireAdmin } from '../_lib/auth.js';
-import { listStudents, createStudent } from '../_lib/students.js';
+import { listStudents, createStudent, batchCreateStudents } from '../_lib/students.js';
 import { readJsonBody, sendJson } from '../_lib/http.js';
 
 export default async function handler(req, res) {
@@ -18,6 +18,15 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       const body = await readJsonBody(req);
+
+      // Batch upload
+      if (Array.isArray(body.students)) {
+        const results = await batchCreateStudents(body.students);
+        sendJson(res, 200, results);
+        return;
+      }
+
+      // Single creation
       const result = await createStudent({
         fullName: body.fullName,
         rollNumber: body.rollNumber,
