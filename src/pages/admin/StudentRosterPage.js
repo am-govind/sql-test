@@ -190,25 +190,24 @@ export async function renderStudentRosterPage(container) {
       return `${iso[1]}-${iso[2].padStart(2, '0')}-${iso[3].padStart(2, '0')}`;
     }
 
-    // DD/MM/YYYY or MM/DD/YYYY fallback (CSV string values from XLSX are never
-    // auto-converted to Date objects, so we parse them here).
-    // Default is DD/MM (Indian format); flip only if part1 is unambiguously a month.
-    const slashed = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+    // DD/MM/YYYY, DD/MM/YY, MM/DD/YYYY, or MM/DD/YY
+    // Default is DD/MM (Indian format); flip only if part2 > 12 and part1 <= 12
+    const slashed = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})$/);
     if (slashed) {
       const part1 = parseInt(slashed[1], 10);
       const part2 = parseInt(slashed[2], 10);
-      const year = slashed[3];
+      let year = parseInt(slashed[3], 10);
+      if (year < 100) {
+        year += year > 50 ? 1900 : 2000;
+      }
       let day = part1;
       let month = part2;
-      // If day part > 12 it can only be a day, so part2 must be month (standard DD/MM)
-      // If part1 <= 12 and part2 > 12, swap: it's MM/DD
       if (part2 > 12 && part1 <= 12) { month = part1; day = part2; }
       return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
 
     return '';
   }
-
 
   fileInput.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
@@ -218,14 +217,15 @@ export async function renderStudentRosterPage(container) {
     bulkFileName.textContent = file.name;
 
     try {
+      const isCsv = file.name.toLowerCase().endsWith('.csv');
       const buffer = await file.arrayBuffer();
-      // Use cellDates:true so Excel date cells become JS Date objects which
-      // normalizeDateVal() converts using local getters (no UTC shift).
-      // Dates entered as text (YYYY-MM-DD) are left as strings and matched
-      // by the ISO regex. The template and UI mandate YYYY-MM-DD format.
-      const workbook = XLSX.read(buffer, { raw: false, cellDates: true });
+      // For CSV, raw: true preserves exact strings like "09/02/2004"
+      // For XLSX, cellDates: true parses Excel date serial numbers to JS Date objects
+      const workbook = isCsv
+        ? XLSX.read(buffer, { raw: true })
+        : XLSX.read(buffer, { raw: false, cellDates: true });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: isCsv });
 
       parsedStudents = [];
       for (const r of rows) {
