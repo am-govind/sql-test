@@ -109,19 +109,48 @@ export async function renderExamEditorPage(container, { examId = null }) {
         </section>
 
         ${examId ? `
-          <section id="enrollment-section" class="space-y-3 rounded-[0.25em] border border-bolt-border p-4">
+          <section id="enrollment-section" class="space-y-3 rounded-lg border border-bolt-border bg-white p-4 shadow-sm">
             <div class="flex items-center justify-between">
-              <h2 class="font-display text-base text-bolt-slate">Enrolled students</h2>
-              <button type="button" id="btn-save-enrollment" class="btn-secondary text-xs">Save enrollment</button>
+              <div>
+                <h2 class="font-display text-base font-semibold text-bolt-slate">Enrolled students</h2>
+                <p class="text-xs text-bolt-muted" id="enrollment-summary">Manage which students are eligible to take this exam.</p>
+              </div>
+              <button type="button" id="btn-save-enrollment" class="btn-primary text-xs flex items-center gap-1.5 px-3 py-1.5 shadow-sm">
+                <span>Save enrollment</span>
+              </button>
             </div>
-            <input id="enrollment-search" type="text" placeholder="Search by name or roll…" class="w-full px-3 py-2 text-sm" />
-            <div id="enrollment-list" class="max-h-48 space-y-1 overflow-y-auto text-sm">
-              <p class="text-bolt-muted">Loading roster…</p>
+
+            <!-- Selected Chips Area -->
+            <div id="enrolled-chips-container" class="min-h-[38px] p-2 bg-slate-50 border border-bolt-border rounded flex flex-wrap gap-1.5 items-center">
+              <span class="text-xs text-bolt-muted italic" id="chips-empty-msg">No students enrolled yet. Select students below.</span>
             </div>
-            <p id="enrollment-error" class="hidden text-sm text-bolt-red"></p>
+
+            <!-- Custom Dropdown Component -->
+            <div class="relative" id="enrollment-dropdown-wrapper">
+              <button type="button" id="btn-toggle-dropdown" class="w-full flex items-center justify-between px-3 py-2 text-sm bg-white border border-bolt-border rounded hover:border-bolt-blue transition-colors focus:outline-none focus:ring-1 focus:ring-bolt-blue">
+                <span id="dropdown-btn-label" class="text-bolt-slate font-medium">Select students to enroll…</span>
+                <span class="text-xs text-bolt-muted">▼</span>
+              </button>
+
+              <!-- Dropdown Panel (hidden by default) -->
+              <div id="enrollment-dropdown-menu" class="hidden absolute z-30 left-0 right-0 mt-1 bg-white border border-bolt-border rounded-md shadow-lg overflow-hidden">
+                <div class="p-2 border-b border-bolt-border bg-slate-50 flex items-center gap-2">
+                  <input id="enrollment-search" type="text" placeholder="Search by name, roll no, or email…" class="w-full px-2.5 py-1.5 text-xs border border-bolt-border rounded bg-white focus:outline-none focus:ring-1 focus:ring-bolt-blue" />
+                  <button type="button" id="btn-select-all-students" class="text-xs text-bolt-blue font-semibold hover:underline whitespace-nowrap px-1">All</button>
+                  <span class="text-bolt-border">|</span>
+                  <button type="button" id="btn-clear-all-students" class="text-xs text-bolt-muted hover:text-bolt-red hover:underline whitespace-nowrap px-1">Clear</button>
+                </div>
+                <div id="enrollment-list" class="max-h-56 space-y-0.5 overflow-y-auto p-1.5 text-xs divide-y divide-slate-100">
+                  <p class="text-bolt-muted p-2">Loading roster…</p>
+                </div>
+              </div>
+            </div>
+
+            <p id="enrollment-error" class="hidden text-xs text-bolt-red font-medium"></p>
+            <p id="enrollment-success" class="hidden text-xs text-emerald-600 font-medium"></p>
           </section>
-          <div class="rounded-[0.25em] bg-bolt-callout p-3 text-xs text-bolt-slate">
-            Students must sign in at <code>/student/login</code> with roll/email + DOB before they can open this exam.
+          <div class="rounded-md bg-blue-50/70 border border-blue-100 p-3 text-xs text-bolt-slate">
+            Students must sign in at <code>/student/login</code> with their roll number/email and date of birth to access enrolled exams.
           </div>
         ` : ''}
 
@@ -197,6 +226,14 @@ async function wireEnrollmentSection(container, examId) {
   const listEl = container.querySelector('#enrollment-list');
   const searchEl = container.querySelector('#enrollment-search');
   const errorEl = container.querySelector('#enrollment-error');
+  const successEl = container.querySelector('#enrollment-success');
+  const chipsContainer = container.querySelector('#enrolled-chips-container');
+  const chipsEmptyMsg = container.querySelector('#chips-empty-msg');
+  const toggleBtn = container.querySelector('#btn-toggle-dropdown');
+  const dropdownMenu = container.querySelector('#enrollment-dropdown-menu');
+  const dropdownBtnLabel = container.querySelector('#dropdown-btn-label');
+  const summaryEl = container.querySelector('#enrollment-summary');
+
   let allStudents = [];
   let enrolledIds = new Set();
 
@@ -205,11 +242,42 @@ async function wireEnrollmentSection(container, examId) {
       adminFetch('/api/admin/students'),
       adminFetch(`/api/admin/exams/${examId}/enrollments`),
     ]);
-    allStudents = students;
-    enrolledIds = new Set(enrollments.map((e) => e.studentId));
+    allStudents = students || [];
+    enrolledIds = new Set((enrollments || []).map((e) => e.studentId));
   } catch (err) {
-    listEl.innerHTML = `<p class="text-bolt-red">${escapeHtml(err.message)}</p>`;
+    listEl.innerHTML = `<p class="text-bolt-red p-2">${escapeHtml(err.message)}</p>`;
     return;
+  }
+
+  function updateChipsAndStatus() {
+    const enrolledStudents = allStudents.filter(s => enrolledIds.has(s.id));
+    summaryEl.textContent = `${enrolledStudents.length} of ${allStudents.length} students enrolled`;
+    dropdownBtnLabel.textContent = enrolledStudents.length === 0
+      ? 'Select students to enroll…'
+      : `${enrolledStudents.length} student${enrolledStudents.length === 1 ? '' : 's'} selected`;
+
+    if (enrolledStudents.length === 0) {
+      chipsContainer.innerHTML = '';
+      chipsContainer.appendChild(chipsEmptyMsg);
+      chipsEmptyMsg.classList.remove('hidden');
+    } else {
+      chipsContainer.innerHTML = enrolledStudents.map(s => `
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200 shadow-2xs">
+          <span>${escapeHtml(s.fullName)}</span>
+          <span class="font-mono text-[10px] text-blue-600">(${escapeHtml(s.rollNumber)})</span>
+          <button type="button" class="text-blue-500 hover:text-blue-800 ml-0.5 font-bold cursor-pointer" data-remove-id="${s.id}" title="Remove student">×</button>
+        </span>
+      `).join('');
+
+      chipsContainer.querySelectorAll('[data-remove-id]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          enrolledIds.delete(btn.dataset.removeId);
+          updateChipsAndStatus();
+          renderList();
+        });
+      });
+    }
   }
 
   function renderList() {
@@ -221,31 +289,112 @@ async function wireEnrollmentSection(container, examId) {
         || (s.email && s.email.toLowerCase().includes(q));
     });
 
-    listEl.innerHTML = filtered.map((s) => `
-      <label class="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 hover:bg-bolt-menu">
-        <input type="checkbox" class="enroll-check accent-[#2074e7]" value="${s.id}" ${enrolledIds.has(s.id) ? 'checked' : ''} />
-        <span>${escapeHtml(s.fullName)} <span class="font-mono text-xs text-bolt-muted">(${escapeHtml(s.rollNumber)})</span></span>
-      </label>
-    `).join('') || '<p class="text-bolt-caption">No students match. Add students in the roster first.</p>';
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<p class="text-bolt-caption p-2">No students match search.</p>';
+      return;
+    }
+
+    listEl.innerHTML = filtered.map((s) => {
+      const isChecked = enrolledIds.has(s.id);
+      return `
+        <label class="flex cursor-pointer items-center justify-between rounded px-2 py-1.5 hover:bg-blue-50 transition-colors ${isChecked ? 'bg-blue-50/50' : ''}">
+          <div class="flex items-center gap-2">
+            <input type="checkbox" class="enroll-check accent-[#2074e7]" value="${s.id}" ${isChecked ? 'checked' : ''} />
+            <span class="font-medium text-bolt-ink">${escapeHtml(s.fullName)}</span>
+          </div>
+          <span class="font-mono text-[11px] text-bolt-muted">${escapeHtml(s.rollNumber)}</span>
+        </label>
+      `;
+    }).join('');
+
+    listEl.querySelectorAll('.enroll-check').forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (cb.checked) {
+          enrolledIds.add(cb.value);
+        } else {
+          enrolledIds.delete(cb.value);
+        }
+        updateChipsAndStatus();
+      });
+    });
   }
 
-  renderList();
+  // Toggle Dropdown
+  toggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdownMenu.classList.toggle('hidden');
+    if (!dropdownMenu.classList.contains('hidden')) {
+      searchEl.focus();
+    }
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const wrapper = container.querySelector('#enrollment-dropdown-wrapper');
+    if (wrapper && !wrapper.contains(e.target)) {
+      dropdownMenu.classList.add('hidden');
+    }
+  });
+
+  // Select all & clear all
+  container.querySelector('#btn-select-all-students')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const q = searchEl.value.trim().toLowerCase();
+    allStudents.forEach(s => {
+      if (!q || s.fullName.toLowerCase().includes(q) || s.rollNumber.toLowerCase().includes(q)) {
+        enrolledIds.add(s.id);
+      }
+    });
+    updateChipsAndStatus();
+    renderList();
+  });
+
+  container.querySelector('#btn-clear-all-students')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const q = searchEl.value.trim().toLowerCase();
+    if (!q) {
+      enrolledIds.clear();
+    } else {
+      allStudents.forEach(s => {
+        if (s.fullName.toLowerCase().includes(q) || s.rollNumber.toLowerCase().includes(q)) {
+          enrolledIds.delete(s.id);
+        }
+      });
+    }
+    updateChipsAndStatus();
+    renderList();
+  });
+
   searchEl.addEventListener('input', renderList);
 
-  container.querySelector('#btn-save-enrollment')?.addEventListener('click', async () => {
+  updateChipsAndStatus();
+  renderList();
+
+  // Save Enrollment
+  const saveBtn = container.querySelector('#btn-save-enrollment');
+  saveBtn?.addEventListener('click', async () => {
     sound.playClick();
     errorEl.classList.add('hidden');
-    const studentIds = [...container.querySelectorAll('.enroll-check:checked')].map((cb) => cb.value);
+    successEl.classList.add('hidden');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+
+    const studentIds = Array.from(enrolledIds);
     try {
       await adminFetch(`/api/admin/exams/${examId}/enrollments`, {
         method: 'PUT',
         body: JSON.stringify({ studentIds }),
       });
-      enrolledIds = new Set(studentIds);
       sound.playSuccessChime();
+      successEl.textContent = `✓ Saved! ${studentIds.length} student${studentIds.length === 1 ? '' : 's'} enrolled.`;
+      successEl.classList.remove('hidden');
+      setTimeout(() => successEl.classList.add('hidden'), 4000);
     } catch (err) {
       errorEl.textContent = err.message;
       errorEl.classList.remove('hidden');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save enrollment';
     }
   });
 }
