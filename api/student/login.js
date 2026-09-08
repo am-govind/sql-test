@@ -1,5 +1,6 @@
 import {
   checkLoginRateLimit,
+  recordFailedLogin,
   clearLoginAttempts,
   signStudentToken,
   normalizeDob,
@@ -37,6 +38,7 @@ export default async function handler(req, res) {
 
     const result = await authenticateStudent(identifier, dob);
     if (!result.ok) {
+      recordFailedLogin(ip);
       sendJson(res, result.status, { error: result.error });
       return;
     }

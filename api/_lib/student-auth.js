@@ -6,8 +6,8 @@ const BCRYPT_ROUNDS = 10;
 
 /** @type {Map<string, { count: number, resetAt: number }>} */
 const loginAttempts = new Map();
-const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 15 * 60 * 1000;
+const MAX_ATTEMPTS = 20;
+const WINDOW_MS = 5 * 60 * 1000;
 
 function jwtSecret() {
   const secret = process.env.STUDENT_JWT_SECRET;
@@ -106,7 +106,6 @@ export function checkLoginRateLimit(ip) {
   const entry = loginAttempts.get(key);
 
   if (!entry || now > entry.resetAt) {
-    loginAttempts.set(key, { count: 1, resetAt: now + WINDOW_MS });
     return { allowed: true };
   }
 
@@ -114,8 +113,19 @@ export function checkLoginRateLimit(ip) {
     return { allowed: false, retryAfterSec: Math.ceil((entry.resetAt - now) / 1000) };
   }
 
-  entry.count += 1;
   return { allowed: true };
+}
+
+export function recordFailedLogin(ip) {
+  const key = ip || 'unknown';
+  const now = Date.now();
+  const entry = loginAttempts.get(key);
+
+  if (!entry || now > entry.resetAt) {
+    loginAttempts.set(key, { count: 1, resetAt: now + WINDOW_MS });
+  } else {
+    entry.count += 1;
+  }
 }
 
 export function clearLoginAttempts(ip) {
