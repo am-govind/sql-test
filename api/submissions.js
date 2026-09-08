@@ -1,4 +1,5 @@
 import { createSubmission } from './_lib/submissions.js';
+import { requireStudent } from './_lib/student-auth.js';
 import { readJsonBody, sendJson } from './_lib/http.js';
 
 export default async function handler(req, res) {
@@ -7,12 +8,17 @@ export default async function handler(req, res) {
     return;
   }
 
+  const auth = requireStudent(req);
+  if (auth.error) {
+    sendJson(res, auth.status, { error: auth.error });
+    return;
+  }
+
   try {
     const body = await readJsonBody(req);
     const result = await createSubmission({
+      studentId: auth.studentId,
       examId: body.examId,
-      studentName: body.studentName,
-      rollNumber: body.rollNumber,
       submissionReason: body.submissionReason,
       analytics: body.analytics,
       violations: body.violations,

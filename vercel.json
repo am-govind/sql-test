@@ -8,6 +8,8 @@
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/admin", "destination": "/index.html" },
     { "source": "/admin/(.*)", "destination": "/index.html" },
+    { "source": "/student", "destination": "/index.html" },
+    { "source": "/student/(.*)", "destination": "/index.html" },
     { "source": "/exam/(.*)", "destination": "/index.html" }
   ]
 }

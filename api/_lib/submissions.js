@@ -1,31 +1,40 @@
 import { createServiceClient } from '../_lib/supabase.js';
-import { getActiveExam } from '../_lib/exams.js';
+import { getEnrolledExamForStudent, getStudentById, hasStudentSubmitted } from '../_lib/students.js';
 
 export async function createSubmission(payload) {
   const {
+    studentId,
     examId,
-    studentName,
-    rollNumber,
     submissionReason,
     analytics,
     violations,
     lessonResults,
   } = payload;
 
-  if (!examId || !studentName?.trim() || !rollNumber?.trim()) {
-    return { ok: false, status: 400, error: 'examId, studentName, and rollNumber are required' };
+  if (!studentId || !examId) {
+    return { ok: false, status: 400, error: 'studentId and examId are required' };
   }
 
-  const exam = await getActiveExam(examId);
-  if (!exam) {
-    return { ok: false, status: 404, error: 'Exam not found or not active' };
+  const examResult = await getEnrolledExamForStudent(studentId, examId);
+  if (!examResult.ok) {
+    return { ok: false, status: examResult.status, error: examResult.error };
+  }
+
+  if (examResult.alreadySubmitted) {
+    return { ok: false, status: 409, error: 'You have already submitted this exam' };
+  }
+
+  const student = await getStudentById(studentId);
+  if (!student) {
+    return { ok: false, status: 401, error: 'Student not found' };
   }
 
   const supabase = createServiceClient();
   const { error } = await supabase.from('submissions').insert({
     exam_id: examId,
-    student_name: studentName.trim(),
-    roll_number: rollNumber.trim(),
+    student_id: studentId,
+    student_name: student.fullName,
+    roll_number: student.rollNumber,
     status: 'submitted',
     submission_reason: submissionReason || 'manual',
     analytics: analytics || {},
@@ -36,7 +45,7 @@ export async function createSubmission(payload) {
 
   if (error) {
     if (error.code === '23505') {
-      return { ok: false, status: 409, error: 'This roll number has already submitted for this exam' };
+      return { ok: false, status: 409, error: 'You have already submitted this exam' };
     }
     throw error;
   }
@@ -44,11 +53,15 @@ export async function createSubmission(payload) {
   return { ok: true };
 }
 
+export async function checkSubmissionStatus(studentId, examId) {
+  return hasStudentSubmitted(studentId, examId);
+}
+
 export async function listSubmissions({ examId }) {
   const supabase = createServiceClient();
   let query = supabase
     .from('submissions')
-    .select('id, exam_id, student_name, roll_number, submission_reason, analytics, violations, submitted_at')
+    .select('id, exam_id, student_id, student_name, roll_number, submission_reason, analytics, violations, submitted_at')
     .order('submitted_at', { ascending: false });
 
   if (examId) query = query.eq('exam_id', examId);
@@ -60,6 +73,7 @@ export async function listSubmissions({ examId }) {
     .map((row) => ({
       id: row.id,
       examId: row.exam_id,
+      studentId: row.student_id,
       studentName: row.student_name,
       rollNumber: row.roll_number,
       submissionReason: row.submission_reason,
@@ -93,6 +107,7 @@ export async function getSubmission(id) {
   return {
     id: data.id,
     examId: data.exam_id,
+    studentId: data.student_id,
     examTitle: data.exams?.title ?? 'Exam',
     studentName: data.student_name,
     rollNumber: data.roll_number,
