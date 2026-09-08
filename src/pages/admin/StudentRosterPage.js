@@ -217,11 +217,13 @@ export async function renderStudentRosterPage(container) {
 
     try {
       const buffer = await file.arrayBuffer();
-      // Use raw text parsing for CSV/XLSX to preserve exact user input strings
-      const workbook = XLSX.read(buffer, { raw: false, cellDates: true });
+      // cellDates: false keeps date cells as strings so our DD/MM/YYYY parser
+      // handles them correctly. If XLSX auto-parses with cellDates:true it uses
+      // US MM/DD order which breaks Indian DD/MM dates like 09/02/2004 → 2 Sep.
+      const workbook = XLSX.read(buffer, { raw: false, cellDates: false });
       const firstSheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[firstSheetName];
-      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: true });
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
 
       parsedStudents = [];
       for (const r of rows) {
