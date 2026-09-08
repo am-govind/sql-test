@@ -171,21 +171,40 @@ export async function renderStudentRosterPage(container) {
   function normalizeDateVal(val) {
     if (!val) return '';
     if (val instanceof Date && !isNaN(val)) {
-      return val.toISOString().split('T')[0];
+      // Use local date methods to avoid UTC shift
+      const y = val.getFullYear();
+      const m = String(val.getMonth() + 1).padStart(2, '0');
+      const d = String(val.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
     }
+
     const str = String(val).trim();
-    // Support YYYY-MM-DD
-    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-    // Support DD-MM-YYYY or DD/MM/YYYY
-    const dmy = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
-    if (dmy) {
-      return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+    // Support YYYY-MM-DD or YYYY/MM/DD
+    const iso = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+    if (iso) {
+      return `${iso[1]}-${iso[2].padStart(2, '0')}-${iso[3].padStart(2, '0')}`;
     }
-    // Support YYYY/MM/DD
-    const ymd = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
-    if (ymd) {
-      return `${ymd[1]}-${ymd[2].padStart(2, '0')}-${ymd[3].padStart(2, '0')}`;
+
+    // Support DD/MM/YYYY or DD-MM-YYYY or MM/DD/YYYY
+    const slashed = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+    if (slashed) {
+      const part1 = parseInt(slashed[1], 10);
+      const part2 = parseInt(slashed[2], 10);
+      const year = slashed[3];
+
+      // If part1 > 12, part1 must be day (DD/MM/YYYY)
+      // If part2 > 12, part2 must be day (MM/DD/YYYY)
+      // Standard in Indian institutions is DD/MM/YYYY
+      let day = part1;
+      let month = part2;
+      if (part2 > 12 && part1 <= 12) {
+        month = part1;
+        day = part2;
+      }
+
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
+
     return str;
   }
 
@@ -198,10 +217,11 @@ export async function renderStudentRosterPage(container) {
 
     try {
       const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { cellDates: true });
+      // Use raw text parsing for CSV/XLSX to preserve exact user input strings
+      const workbook = XLSX.read(buffer, { raw: false, cellDates: true });
       const firstSheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[firstSheetName];
-      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: true });
 
       parsedStudents = [];
       for (const r of rows) {

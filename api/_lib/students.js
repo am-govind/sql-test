@@ -64,7 +64,7 @@ export async function listStudents() {
 
 export async function batchCreateStudents(studentsList) {
   const supabase = createServiceClient();
-  const results = { inserted: 0, skipped: 0, errors: [] };
+  const results = { inserted: 0, updated: 0, errors: [] };
 
   for (let i = 0; i < studentsList.length; i++) {
     const s = studentsList[i];
@@ -75,23 +75,42 @@ export async function batchCreateStudents(studentsList) {
 
     try {
       const dobHash = await hashDob(s.dob);
-      const { error } = await supabase
+      const { data: existing } = await supabase
         .from('students')
-        .insert({
-          full_name: s.fullName.trim(),
-          roll_number: s.rollNumber.trim(),
-          email: s.email?.trim() || null,
-          dob_hash: dobHash,
-        });
+        .select('id')
+        .eq('roll_number', s.rollNumber.trim())
+        .maybeSingle();
 
-      if (error) {
-        if (error.code === '23505') {
-          results.skipped += 1;
-        } else {
+      if (existing) {
+        const { error } = await supabase
+          .from('students')
+          .update({
+            full_name: s.fullName.trim(),
+            email: s.email?.trim() || null,
+            dob_hash: dobHash,
+          })
+          .eq('id', existing.id);
+
+        if (error) {
           results.errors.push({ row: i + 1, error: error.message });
+        } else {
+          results.updated += 1;
         }
       } else {
-        results.inserted += 1;
+        const { error } = await supabase
+          .from('students')
+          .insert({
+            full_name: s.fullName.trim(),
+            roll_number: s.rollNumber.trim(),
+            email: s.email?.trim() || null,
+            dob_hash: dobHash,
+          });
+
+        if (error) {
+          results.errors.push({ row: i + 1, error: error.message });
+        } else {
+          results.inserted += 1;
+        }
       }
     } catch (err) {
       results.errors.push({ row: i + 1, error: err.message });
