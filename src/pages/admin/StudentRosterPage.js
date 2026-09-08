@@ -208,6 +208,33 @@ export async function renderStudentRosterPage(container) {
     return str;
   }
 
+  // Parse raw text CSV preserving original cell strings (no date auto-detection).
+  // This prevents XLSX from converting "09/02/2004" (DD/MM) into an Excel
+  // serial number by mis-reading it as MM/DD (US format).
+  function parseCsvRows(text) {
+    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length < 2) return [];
+    const splitCsv = (line) => {
+      const out = [];
+      let cur = '';
+      let inQ = false;
+      for (const ch of line) {
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { out.push(cur.trim()); cur = ''; }
+        else { cur += ch; }
+      }
+      out.push(cur.trim());
+      return out;
+    };
+    const headers = splitCsv(lines[0]);
+    return lines.slice(1).map((line) => {
+      const vals = splitCsv(line);
+      const row = {};
+      headers.forEach((h, i) => { row[h] = vals[i] ?? ''; });
+      return row;
+    });
+  }
+
   fileInput.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -217,13 +244,22 @@ export async function renderStudentRosterPage(container) {
 
     try {
       const buffer = await file.arrayBuffer();
-      // cellDates: false keeps date cells as strings so our DD/MM/YYYY parser
-      // handles them correctly. If XLSX auto-parses with cellDates:true it uses
-      // US MM/DD order which breaks Indian DD/MM dates like 09/02/2004 → 2 Sep.
-      const workbook = XLSX.read(buffer, { raw: false, cellDates: false });
-      const firstSheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[firstSheetName];
-      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
+      let rows;
+
+      if (file.name.toLowerCase().endsWith('.csv')) {
+        // CSV: parse as plain text so date strings like "09/02/2004" are
+        // preserved exactly. XLSX auto-detection would convert them to
+        // Excel serial numbers (MM/DD US interpretation) and we'd lose
+        // the original string needed for our DD/MM/YYYY parser.
+        const text = new TextDecoder('utf-8').decode(buffer);
+        rows = parseCsvRows(text);
+      } else {
+        // XLSX: use cellDates:true so Excel date cells become JS Date objects,
+        // then normalizeDateVal() reads them with local getters (no UTC shift).
+        const workbook = XLSX.read(buffer, { raw: false, cellDates: true });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
+      }
 
       parsedStudents = [];
       for (const r of rows) {
@@ -259,6 +295,7 @@ export async function renderStudentRosterPage(container) {
       uploadBulkBtn.disabled = true;
     }
   });
+
 
   uploadBulkBtn.addEventListener('click', async () => {
     if (!parsedStudents.length) return;
