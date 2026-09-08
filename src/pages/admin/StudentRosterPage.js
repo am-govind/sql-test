@@ -169,12 +169,12 @@ export async function renderStudentRosterPage(container) {
   const uploadBulkBtn = container.querySelector('#btn-upload-bulk');
 
   // Convert a cell value to YYYY-MM-DD.
-  // Handles: JS Date objects (from XLSX date cells), ISO strings (YYYY-MM-DD).
-  // The template mandates YYYY-MM-DD so no DD/MM ambiguity logic is needed.
+  // Handles: JS Date objects (from XLSX .xlsx date cells), ISO strings (YYYY-MM-DD),
+  // and DD/MM/YYYY strings (common in CSV exports from Indian institutions).
   function normalizeDateVal(val) {
     if (!val) return '';
 
-    // XLSX date cell → JS Date object
+    // XLSX date cell → JS Date object (use local getters to avoid UTC shift)
     if (val instanceof Date && !isNaN(val)) {
       const y = val.getFullYear();
       const m = String(val.getMonth() + 1).padStart(2, '0');
@@ -183,14 +183,32 @@ export async function renderStudentRosterPage(container) {
     }
 
     const str = String(val).trim();
-    // YYYY-MM-DD or YYYY/MM/DD (standard ISO — what the template uses)
+
+    // YYYY-MM-DD or YYYY/MM/DD  (preferred — unambiguous)
     const iso = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
     if (iso) {
       return `${iso[1]}-${iso[2].padStart(2, '0')}-${iso[3].padStart(2, '0')}`;
     }
 
+    // DD/MM/YYYY or MM/DD/YYYY fallback (CSV string values from XLSX are never
+    // auto-converted to Date objects, so we parse them here).
+    // Default is DD/MM (Indian format); flip only if part1 is unambiguously a month.
+    const slashed = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+    if (slashed) {
+      const part1 = parseInt(slashed[1], 10);
+      const part2 = parseInt(slashed[2], 10);
+      const year = slashed[3];
+      let day = part1;
+      let month = part2;
+      // If day part > 12 it can only be a day, so part2 must be month (standard DD/MM)
+      // If part1 <= 12 and part2 > 12, swap: it's MM/DD
+      if (part2 > 12 && part1 <= 12) { month = part1; day = part2; }
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+
     return '';
   }
+
 
   fileInput.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
