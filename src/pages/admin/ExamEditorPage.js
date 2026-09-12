@@ -19,6 +19,13 @@ export async function renderExamEditorPage(container, { examId = null }) {
     proctor_mode: 'strike_1',
     fullscreen_enforced: false,
     status: 'draft',
+    proctorConfig: {
+      webcam: true,
+      mic: true,
+      screenshare: false,
+      blockCopyPaste: true,
+      blockDevtools: true,
+    },
   };
 
   if (examId) {
@@ -31,7 +38,20 @@ export async function renderExamEditorPage(container, { examId = null }) {
       wireAdminShell(container);
       return;
     }
-    exam = data;
+    exam = { ...data };
+
+    // Try parsing proctorConfig if embedded into description as JSON
+    try {
+      if (exam.description && exam.description.startsWith('{') && exam.description.endsWith('}')) {
+        const parsed = JSON.parse(exam.description);
+        if (parsed.proctorConfig) {
+          exam.proctorConfig = { ...exam.proctorConfig, ...parsed.proctorConfig };
+          exam.description = parsed.text || '';
+        }
+      }
+    } catch {
+      // Plain string description, keep default proctorConfig
+    }
   }
 
   const lessonsByCategory = Object.values(LESSON_CATEGORIES).map((cat) => ({
@@ -95,10 +115,6 @@ export async function renderExamEditorPage(container, { examId = null }) {
               <option value="strict" ${exam.proctor_mode === 'strict' ? 'selected' : ''}>Strict: submit on 1st offense</option>
             </select>
           </label>
-          <label class="flex items-center gap-2 sm:col-span-2">
-            <input id="check-fullscreen" type="checkbox" class="accent-[#2074e7]" ${exam.fullscreen_enforced ? 'checked' : ''} />
-            <span class="text-sm text-bolt-slate">Launch in fullscreen</span>
-          </label>
           <label class="block">
             <span class="text-xs font-bold uppercase text-bolt-muted">Status</span>
             <select id="select-status" class="mt-1 w-full px-3 py-2 text-sm">
@@ -107,6 +123,53 @@ export async function renderExamEditorPage(container, { examId = null }) {
               <option value="closed" ${exam.status === 'closed' ? 'selected' : ''}>Closed</option>
             </select>
           </label>
+          <div class="flex items-center pt-6">
+            <label class="flex items-center gap-2">
+              <input id="check-fullscreen" type="checkbox" class="accent-[#2074e7]" ${exam.fullscreen_enforced ? 'checked' : ''} />
+              <span class="text-sm font-medium text-bolt-slate">Enforce Fullscreen Mode</span>
+            </label>
+          </div>
+        </section>
+
+        <!-- Advanced Proctoring & Media Monitoring -->
+        <section class="space-y-3 rounded-lg border border-bolt-border bg-slate-50/60 p-4">
+          <div>
+            <h3 class="font-display text-sm font-bold text-bolt-slate">Proctor Security & Media Verification</h3>
+            <p class="text-xs text-bolt-muted">Students will be prompted to grant permissions before starting the test.</p>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2 pt-1">
+            <label class="flex items-start gap-2.5 p-2 bg-white rounded border border-bolt-border cursor-pointer hover:border-bolt-blue transition-colors">
+              <input id="check-webcam" type="checkbox" class="mt-0.5 accent-[#2074e7]" ${exam.proctorConfig?.webcam ? 'checked' : ''} />
+              <div>
+                <span class="text-xs font-bold text-bolt-ink block">Webcam & Motion Tracking</span>
+                <span class="text-[11px] text-bolt-muted block">Detects absence from camera, covering, or rapid movement.</span>
+              </div>
+            </label>
+
+            <label class="flex items-start gap-2.5 p-2 bg-white rounded border border-bolt-border cursor-pointer hover:border-bolt-blue transition-colors">
+              <input id="check-mic" type="checkbox" class="mt-0.5 accent-[#2074e7]" ${exam.proctorConfig?.mic ? 'checked' : ''} />
+              <div>
+                <span class="text-xs font-bold text-bolt-ink block">Microphone Sound Monitor</span>
+                <span class="text-[11px] text-bolt-muted block">Monitors ambient audio decibels and speech spikes.</span>
+              </div>
+            </label>
+
+            <label class="flex items-start gap-2.5 p-2 bg-white rounded border border-bolt-border cursor-pointer hover:border-bolt-blue transition-colors">
+              <input id="check-screenshare" type="checkbox" class="mt-0.5 accent-[#2074e7]" ${exam.proctorConfig?.screenshare ? 'checked' : ''} />
+              <div>
+                <span class="text-xs font-bold text-bolt-ink block">Live Screen Share Verification</span>
+                <span class="text-[11px] text-bolt-muted block">Requires student to share their full screen during the exam.</span>
+              </div>
+            </label>
+
+            <label class="flex items-start gap-2.5 p-2 bg-white rounded border border-bolt-border cursor-pointer hover:border-bolt-blue transition-colors">
+              <input id="check-clipboard" type="checkbox" class="mt-0.5 accent-[#2074e7]" ${exam.proctorConfig?.blockCopyPaste !== false ? 'checked' : ''} />
+              <div>
+                <span class="text-xs font-bold text-bolt-ink block">Block Copy/Paste & DevTools</span>
+                <span class="text-[11px] text-bolt-muted block">Prevents external code pasting and flags console inspection.</span>
+              </div>
+            </label>
+          </div>
         </section>
 
         ${examId ? `
@@ -188,9 +251,23 @@ export async function renderExamEditorPage(container, { examId = null }) {
       return;
     }
 
+    const proctorConfig = {
+      webcam: container.querySelector('#check-webcam')?.checked ?? true,
+      mic: container.querySelector('#check-mic')?.checked ?? true,
+      screenshare: container.querySelector('#check-screenshare')?.checked ?? false,
+      blockCopyPaste: container.querySelector('#check-clipboard')?.checked ?? true,
+      blockDevtools: container.querySelector('#check-clipboard')?.checked ?? true,
+    };
+
+    const descText = container.querySelector('#input-description').value.trim();
+    const serializedDescription = JSON.stringify({
+      text: descText,
+      proctorConfig,
+    });
+
     const payload = {
       title: container.querySelector('#input-title').value.trim(),
-      description: container.querySelector('#input-description').value.trim(),
+      description: serializedDescription,
       lesson_ids: lessonIds,
       duration_sec: Number(container.querySelector('#select-duration').value),
       proctor_mode: container.querySelector('#select-proctor-mode').value,

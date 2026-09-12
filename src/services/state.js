@@ -113,6 +113,7 @@ class StateService {
       submittedAt: null,
       proctorMode,
       fullscreenEnforced,
+      proctorConfig: options.proctorConfig || {},
       violations: [],
       strikesUsed: 0,
       maxStrikesAllowed: proctorMode === 'strict' ? 0 : 1,

@@ -18,6 +18,7 @@ import { LESSONS } from '../data/lessons.js';
 import { state } from '../services/state.js';
 import { timer } from '../services/timer.js';
 import { proctor } from '../services/proctor.js';
+import { mediaProctor } from '../services/mediaProctor.js';
 import { sound } from '../services/sound.js';
 
 export function renderTestPage(container, { onSubmitExam }) {
@@ -30,6 +31,20 @@ export function renderTestPage(container, { onSubmitExam }) {
       <div id="fallback-banner"></div>
       <div id="exam-workspace" class="min-h-[500px]"></div>
       <div id="exam-advance" class="border-t border-bolt-border p-4"></div>
+
+      <!-- Live Proctor Cam Widget if Webcam enabled -->
+      ${mediaProctor.videoStream ? `
+        <div id="proctor-pip-cam" class="fixed bottom-4 right-4 z-40 overflow-hidden rounded-lg border-2 border-bolt-blue bg-black shadow-xl w-36 sm:w-44 transition-all">
+          <div class="flex items-center justify-between bg-bolt-slate px-2 py-1 text-[10px] font-bold text-white">
+            <span class="flex items-center gap-1">
+              <span class="h-2 w-2 animate-pulse rounded-full bg-red-500"></span>
+              REC • Proctoring
+            </span>
+            <span class="text-[9px] text-slate-300">Live</span>
+          </div>
+          <video id="proctor-pip-video" autoplay muted playsinline class="h-24 sm:h-28 w-full object-cover"></video>
+        </div>
+      ` : ''}
     `,
   });
 
@@ -38,6 +53,14 @@ export function renderTestPage(container, { onSubmitExam }) {
   const bannerEl = container.querySelector('#fallback-banner');
   const workspaceEl = container.querySelector('#exam-workspace');
   const advanceEl = container.querySelector('#exam-advance');
+
+  // Wire PiP video stream if active
+  if (mediaProctor.videoStream) {
+    const pipVideo = container.querySelector('#proctor-pip-video');
+    if (pipVideo) {
+      pipVideo.srcObject = mediaProctor.videoStream;
+    }
+  }
 
   let workspace = null;
   let usingFallback = false;
@@ -48,6 +71,7 @@ export function renderTestPage(container, { onSubmitExam }) {
   function submitExam(reason) {
     timer.stop();
     proctor.stop();
+    container.querySelector('#proctor-pip-cam')?.remove();
     workspace?.destroy?.();
     state.submitTest(reason).then(() => onSubmitExam?.());
   }

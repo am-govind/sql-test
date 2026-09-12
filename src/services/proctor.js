@@ -5,6 +5,7 @@
 
 import { state } from './state.js';
 import { sound } from './sound.js';
+import { mediaProctor } from './mediaProctor.js';
 
 class ProctorService {
   constructor() {
@@ -21,7 +22,7 @@ class ProctorService {
     this.handleFullscreenChange = this.handleFullscreenChange.bind(this);
   }
 
-  start({ onViolation, onAutoSubmit }) {
+  start({ onViolation, onAutoSubmit, proctorConfig = {} }) {
     if (this.isActive) this.stop();
 
     this.isActive = true;
@@ -32,6 +33,13 @@ class ProctorService {
     window.addEventListener('blur', this.handleWindowBlur);
     window.addEventListener('beforeunload', this.handleBeforeUnload);
     document.addEventListener('fullscreenchange', this.handleFullscreenChange);
+
+    // Initialize media proctoring (camera, mic, screenshare, clipboard)
+    mediaProctor.start({
+      onViolation: (type, label) => {
+        this.triggerViolation(type, label);
+      },
+    });
   }
 
   stop() {
@@ -40,6 +48,7 @@ class ProctorService {
     window.removeEventListener('blur', this.handleWindowBlur);
     window.removeEventListener('beforeunload', this.handleBeforeUnload);
     document.removeEventListener('fullscreenchange', this.handleFullscreenChange);
+    mediaProctor.stop();
 
     if (this.blurDebounceTimer) {
       clearTimeout(this.blurDebounceTimer);
