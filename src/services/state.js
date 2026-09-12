@@ -84,6 +84,7 @@ class StateService {
     durationSec = 45 * 60,
     proctorMode = 'strike_1',
     fullscreenEnforced = false,
+    proctorConfig = {},
   }) {
     const lessonIds = selectedLessonIds?.length ? selectedLessonIds : LESSONS.map((l) => l.id);
     const initialProgress = {};
@@ -113,7 +114,7 @@ class StateService {
       submittedAt: null,
       proctorMode,
       fullscreenEnforced,
-      proctorConfig: options.proctorConfig || {},
+      proctorConfig,
       violations: [],
       strikesUsed: 0,
       maxStrikesAllowed: proctorMode === 'strict' ? 0 : 1,
