@@ -34,7 +34,7 @@ export function renderTestPage(container, { onSubmitExam }) {
 
       <!-- Live Proctor Cam Widget if Webcam enabled -->
       ${mediaProctor.videoStream ? `
-        <div id="proctor-pip-cam" class="fixed bottom-4 right-4 z-40 overflow-hidden rounded-lg border-2 border-bolt-blue bg-black shadow-xl w-36 sm:w-44 transition-all">
+        <div id="proctor-pip-cam" class="fixed top-16 right-4 z-40 overflow-hidden rounded-lg border-2 border-bolt-blue bg-black shadow-xl w-36 sm:w-44 transition-all">
           <div class="flex items-center justify-between bg-bolt-slate px-2 py-1 text-[10px] font-bold text-white">
             <span class="flex items-center gap-1">
               <span class="h-2 w-2 animate-pulse rounded-full bg-red-500"></span>

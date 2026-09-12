@@ -29,6 +29,9 @@ export class MediaProctorService {
     this.consecutiveLowMotion = 0;
     this.consecutiveNoFace = 0;
     this.consecutiveLoudNoise = 0;
+    this.lookAwaySeconds = 0;
+    this.lookAwayWarningSent = false;
+    this.faceDetector = null;
     this.isCalibrating = false;
 
     this.handlePaste = this.handlePaste.bind(this);
@@ -182,6 +185,14 @@ export class MediaProctorService {
       video.playsInline = true;
       video.play().catch(() => {});
 
+      if ('FaceDetector' in window) {
+        try {
+          this.faceDetector = new window.FaceDetector({ maxDetectedFaces: 2, fastMode: true });
+        } catch {
+          this.faceDetector = null;
+        }
+      }
+
       this.motionInterval = setInterval(async () => {
         if (!video.videoWidth) return;
         try {
@@ -198,6 +209,23 @@ export class MediaProctorService {
           if (avgBrightness < 12) {
             this.reportViolation('camera_covered', 'Camera appears covered, blocked, or in extreme darkness');
             return;
+          }
+
+          if (this.faceDetector) {
+            const faces = await this.faceDetector.detect(video);
+            if (faces.length === 0) {
+              this.lookAwaySeconds += 2.5;
+              if (this.lookAwaySeconds >= 45 && !this.lookAwayWarningSent) {
+                this.lookAwayWarningSent = true;
+                this.reportViolation(
+                  'face_not_visible',
+                  'Face not visible for 45 seconds; possible phone use or looking away from the screen'
+                );
+              }
+            } else {
+              this.lookAwaySeconds = 0;
+              this.lookAwayWarningSent = false;
+            }
           }
 
           // Check motion difference compared to previous frame
@@ -278,6 +306,9 @@ export class MediaProctorService {
   }
 
   stop() {
+    this.lookAwaySeconds = 0;
+    this.lookAwayWarningSent = false;
+    this.faceDetector = null;
     if (this.audioInterval) {
       clearInterval(this.audioInterval);
       this.audioInterval = null;
