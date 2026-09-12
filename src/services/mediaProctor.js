@@ -34,6 +34,17 @@ export class MediaProctorService {
     this.handlePaste = this.handlePaste.bind(this);
     this.handleCopy = this.handleCopy.bind(this);
     this.handleContextMenu = this.handleContextMenu.bind(this);
+
+    // Pre-acquired streams passed in from the permission-tile flow
+    this._preAcquired = {};
+  }
+
+  /**
+   * Called by StudentEntryPage to hand over streams already acquired via the
+   * individual permission tiles (avoids double browser prompts).
+   */
+  setAcquiredStreams(streams = {}) {
+    this._preAcquired = streams;
   }
 
   async setupStreams(config = {}) {
@@ -47,13 +58,13 @@ export class MediaProctorService {
     // 1. Setup Camera
     if (this.config.webcam) {
       try {
-        this.videoStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: 320 },
-            height: { ideal: 240 },
-            frameRate: { max: 15 },
-          },
-        });
+        if (this._preAcquired.webcam) {
+          this.videoStream = this._preAcquired.webcam;
+        } else {
+          this.videoStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { max: 15 } },
+          });
+        }
         results.webcamOk = true;
       } catch (err) {
         console.warn('[MediaProctor] Webcam permission error:', err);
@@ -64,7 +75,11 @@ export class MediaProctorService {
     // 2. Setup Mic
     if (this.config.mic) {
       try {
-        this.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (this._preAcquired.mic) {
+          this.audioStream = this._preAcquired.mic;
+        } else {
+          this.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        }
         results.micOk = true;
         this.initAudioAnalyser();
       } catch (err) {
@@ -79,10 +94,14 @@ export class MediaProctorService {
         if (!navigator.mediaDevices.getDisplayMedia) {
           throw new Error('Screen sharing API is not supported on this browser.');
         }
-        this.screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: { cursor: 'always' },
-          audio: false,
-        });
+        if (this._preAcquired.screen) {
+          this.screenStream = this._preAcquired.screen;
+        } else {
+          this.screenStream = await navigator.mediaDevices.getDisplayMedia({
+            video: { cursor: 'always' },
+            audio: false,
+          });
+        }
 
         // Listen for student manually stopping screen share
         const track = this.screenStream.getVideoTracks()[0];

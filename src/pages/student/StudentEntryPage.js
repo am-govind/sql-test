@@ -57,6 +57,17 @@ export async function renderStudentEntryPage(container, { examId }) {
 
     const hasMediaRequirements = proctorConfig.webcam || proctorConfig.mic || proctorConfig.screenshare;
 
+    function permTile(id, perm, iconHtml, label) {
+      return `
+        <button type="button" id="${id}"
+          class="perm-tile flex items-center gap-2 p-2 bg-white rounded border border-blue-100 text-bolt-slate hover:border-bolt-blue hover:shadow-sm transition-all text-left w-full text-xs"
+          data-perm="${perm}" data-status="idle">
+          <span class="text-bolt-blue shrink-0">${iconHtml}</span>
+          <span class="flex-1">${label}</span>
+          <span class="perm-badge shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400">Click</span>
+        </button>`;
+    }
+
     bodyEl.innerHTML = `
       <div class="space-y-6">
         <div>
@@ -81,35 +92,20 @@ export async function renderStudentEntryPage(container, { examId }) {
           <div class="font-mono text-xs text-bolt-caption">${escapeHtml(profile?.rollNumber || '')}</div>
         </div>
 
-        <!-- Security & Hardware Checks -->
         ${hasMediaRequirements ? `
           <div class="rounded-lg border border-blue-200 bg-blue-50/60 p-4 space-y-3">
-            <div class="flex items-center gap-2">
-              <span class="text-bolt-blue font-bold text-sm">Hardware & Proctor Verification</span>
-            </div>
-            <p class="text-xs text-bolt-slate">
-              This exam enforces proctor monitoring. When you click start, your browser will ask for device permissions:
+            <span class="text-bolt-blue font-bold text-sm">Hardware &amp; Proctor Verification</span>
+            <p class="text-xs text-bolt-slate pt-1">
+              Click each tile below to grant the required permissions before starting.
             </p>
-            <div class="grid gap-2 sm:grid-cols-3 text-xs pt-1">
-              ${proctorConfig.webcam ? `
-                <div class="flex items-center gap-2 p-2 bg-white rounded border border-blue-100 text-bolt-slate">
-                  <span class="text-bolt-blue">${icons.camera('w-4 h-4')}</span>
-                  <span>Webcam feed</span>
-                </div>
-              ` : ''}
-              ${proctorConfig.mic ? `
-                <div class="flex items-center gap-2 p-2 bg-white rounded border border-blue-100 text-bolt-slate">
-                  <span class="text-bolt-blue">${icons.mic('w-4 h-4')}</span>
-                  <span>Microphone level</span>
-                </div>
-              ` : ''}
-              ${proctorConfig.screenshare ? `
-                <div class="flex items-center gap-2 p-2 bg-white rounded border border-blue-100 text-bolt-slate">
-                  <span class="text-bolt-blue">${icons.monitor('w-4 h-4')}</span>
-                  <span>Screen sharing</span>
-                </div>
-              ` : ''}
+            <div class="grid gap-2 sm:grid-cols-3 pt-1">
+              ${proctorConfig.webcam    ? permTile('perm-webcam', 'webcam', icons.camera('w-4 h-4'),  'Webcam feed') : ''}
+              ${proctorConfig.mic       ? permTile('perm-mic',    'mic',    icons.mic('w-4 h-4'),     'Microphone')  : ''}
+              ${proctorConfig.screenshare ? permTile('perm-screen', 'screen', icons.monitor('w-4 h-4'), 'Screen share') : ''}
             </div>
+            <p id="perm-hint" class="text-[11px] text-bolt-muted">
+              All permissions must be granted to start the exam.
+            </p>
           </div>
         ` : ''}
 
@@ -122,27 +118,107 @@ export async function renderStudentEntryPage(container, { examId }) {
         <div id="permission-error" class="hidden rounded p-3 text-xs text-bolt-red bg-red-50 border border-red-200"></div>
 
         <div class="border-t border-bolt-border pt-4">
-          <button id="btn-start-exam" type="button" class="btn-primary w-full py-3 text-sm uppercase tracking-wide">
+          <button id="btn-start-exam" type="button" class="btn-primary w-full py-3 text-sm uppercase tracking-wide" ${hasMediaRequirements ? 'disabled' : ''}>
             ${icons.play('w-4 h-4')}
-            <span id="btn-start-label">Start proctored exam</span>
+            <span id="btn-start-label">${hasMediaRequirements ? 'Grant permissions above to continue' : 'Start proctored exam'}</span>
           </button>
         </div>
       </div>
     `;
 
-    const startBtn = bodyEl.querySelector('#btn-start-exam');
+    const startBtn   = bodyEl.querySelector('#btn-start-exam');
     const startLabel = bodyEl.querySelector('#btn-start-label');
-    const errorEl = bodyEl.querySelector('#permission-error');
+    const errorEl    = bodyEl.querySelector('#permission-error');
 
+    // ── Per-tile permission granting ──────────────────────────────────────
+    const permStreams = {};
+
+    function setTileStatus(tile, status) {
+      tile.dataset.status = status;
+      const badge = tile.querySelector('.perm-badge');
+      if (status === 'requesting') {
+        tile.disabled = true;
+        badge.textContent = '…';
+        badge.className = 'perm-badge shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-600';
+      } else if (status === 'granted') {
+        tile.disabled = true;
+        badge.textContent = '✓';
+        badge.className = 'perm-badge shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-600';
+        tile.classList.add('border-green-300', 'bg-green-50');
+        tile.classList.remove('border-blue-100', 'bg-white');
+      } else if (status === 'denied') {
+        tile.disabled = false;
+        badge.textContent = '✗ Retry';
+        badge.className = 'perm-badge shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600';
+        tile.classList.remove('border-green-300', 'bg-green-50');
+        tile.classList.add('border-red-300');
+      }
+    }
+
+    function checkAllGranted() {
+      const tiles = [...bodyEl.querySelectorAll('.perm-tile')];
+      const allGranted = tiles.length > 0 && tiles.every((t) => t.dataset.status === 'granted');
+      startBtn.disabled = !allGranted;
+      startLabel.textContent = allGranted
+        ? 'Start proctored exam'
+        : 'Grant permissions above to continue';
+      const hint = bodyEl.querySelector('#perm-hint');
+      if (hint) hint.textContent = allGranted
+        ? 'All permissions granted — you can start the exam.'
+        : 'All permissions must be granted to start the exam.';
+    }
+
+    bodyEl.querySelectorAll('.perm-tile').forEach((tile) => {
+      tile.addEventListener('click', async () => {
+        const perm = tile.dataset.perm;
+        setTileStatus(tile, 'requesting');
+        errorEl.classList.add('hidden');
+        try {
+          if (perm === 'webcam') {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            permStreams.webcam = stream;
+          } else if (perm === 'mic') {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            permStreams.mic = stream;
+          } else if (perm === 'screen') {
+            // getDisplayMedia MUST be triggered from a direct user gesture — this click satisfies that
+            const stream = await navigator.mediaDevices.getDisplayMedia({
+              video: { cursor: 'always' },
+              audio: false,
+            });
+            permStreams.screen = stream;
+            // If user stops sharing before exam starts, revert tile to denied
+            stream.getVideoTracks()[0].addEventListener('ended', () => {
+              delete permStreams.screen;
+              setTileStatus(tile, 'denied');
+              startBtn.disabled = true;
+              startLabel.textContent = 'Grant permissions above to continue';
+              errorEl.textContent = 'Screen sharing was stopped. Click the tile to share again before starting.';
+              errorEl.classList.remove('hidden');
+            });
+          }
+          setTileStatus(tile, 'granted');
+          checkAllGranted();
+        } catch (err) {
+          setTileStatus(tile, 'denied');
+          errorEl.textContent = `Permission denied: ${err.message}. Click the tile to try again.`;
+          errorEl.classList.remove('hidden');
+        }
+      });
+    });
+
+    // ── Start exam ─────────────────────────────────────────────────────────
     startBtn.addEventListener('click', async () => {
       sound.playClick();
       errorEl.classList.add('hidden');
       startBtn.disabled = true;
-      startLabel.textContent = 'Verifying permissions…';
+      startLabel.textContent = 'Starting exam…';
 
       try {
-        // Request and verify media streams (webcam, mic, screen)
         if (hasMediaRequirements) {
+          if (typeof mediaProctor.setAcquiredStreams === 'function') {
+            mediaProctor.setAcquiredStreams(permStreams);
+          }
           await mediaProctor.setupStreams(proctorConfig);
         }
 

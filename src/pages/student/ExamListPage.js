@@ -7,6 +7,17 @@ import { fetchActiveExams } from '../../lib/api.js';
 import { navigate } from '../../router.js';
 import { escapeHtml } from '../admin/adminShell.js';
 
+function getExamText(description) {
+  if (!description) return '';
+  try {
+    if (description.startsWith('{') && description.endsWith('}')) {
+      const parsed = JSON.parse(description);
+      return parsed.text || '';
+    }
+  } catch (_) {}
+  return description;
+}
+
 export async function renderExamListPage(container) {
   container.innerHTML = boltShell({
     width: 'max-w-3xl',
@@ -46,7 +57,7 @@ export async function renderExamListPage(container) {
         <div class="flex items-start justify-between gap-3">
           <div>
             <h2 class="font-display text-base font-bold text-bolt-ink">${escapeHtml(exam.title)}</h2>
-            <p class="pt-1 text-xs text-bolt-caption">${escapeHtml(exam.description || 'SQLBolt proctored exam')}</p>
+            <p class="pt-1 text-xs text-bolt-caption">${escapeHtml(getExamText(exam.description) || 'SQLBolt proctored exam')}</p>
           </div>
           <span class="shrink-0 font-mono text-xs text-bolt-muted">${exam.lessonCount} lessons</span>
         </div>
