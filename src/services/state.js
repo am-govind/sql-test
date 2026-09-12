@@ -219,7 +219,12 @@ class StateService {
   }
 
   async submitTest(reason = 'manual') {
-    if (this.session.status === 'submitted') return;
+    // Automatic violation submission can be initiated twice: recordViolation()
+    // starts the save, then the proctor callback navigates to the done page.
+    // Make both callers wait for the same persistence request.
+    if (this.session.status === 'submitted') {
+      return this.submissionPromise || Promise.resolve();
+    }
 
     if (this.session.activeLessonStartTime && this.session.currentLessonId) {
       const elapsed = Math.floor((Date.now() - this.session.activeLessonStartTime) / 1000);
@@ -265,23 +270,28 @@ class StateService {
 
     this.saveSession();
 
-    try {
-      await postStudentSubmission({
-        examId: this.session.examId,
-        submissionReason: reason,
-        analytics: this.session.analytics,
-        violations: this.session.violations,
-        lessonResults: this.buildLessonResults(),
-      });
-      this.session.submissionSaved = true;
-      this.session.submissionError = null;
-    } catch (err) {
-      console.error('Failed to persist submission:', err);
-      this.session.submissionSaved = false;
-      this.session.submissionError = err.message || 'Failed to save submission';
-    }
+    this.submissionPromise = (async () => {
+      try {
+        await postStudentSubmission({
+          examId: this.session.examId,
+          submissionReason: reason,
+          analytics: this.session.analytics,
+          violations: this.session.violations,
+          lessonResults: this.buildLessonResults(),
+        });
+        this.session.submissionSaved = true;
+        this.session.submissionError = null;
+      } catch (err) {
+        console.error('Failed to persist submission:', err);
+        this.session.submissionSaved = false;
+        this.session.submissionError = err.message || 'Failed to save submission';
+      }
 
-    this.saveSession();
+      this.saveSession();
+    })();
+
+    await this.submissionPromise;
+    return this.submissionPromise;
   }
 
   calculateGrade(percentage, violationsCount) {
