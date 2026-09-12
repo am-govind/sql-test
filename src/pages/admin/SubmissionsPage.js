@@ -29,7 +29,7 @@ export async function renderSubmissionsPage(container, { examId }) {
           <thead>
             <tr>
               <th>#</th><th>Name</th><th>Roll</th><th>Score</th><th>Grade</th>
-              <th>Lessons</th><th>Time</th><th>Violations</th><th>Submitted</th>
+              <th>Lessons</th><th>Time</th><th>Violations</th><th>Submitted</th><th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -44,8 +44,13 @@ export async function renderSubmissionsPage(container, { examId }) {
                 <td class="font-mono text-xs">${timer.getFormattedTime(row.totalTimeTakenSec)}</td>
                 <td class="font-mono text-xs ${row.totalViolations > 0 ? 'text-bolt-red' : ''}">${row.totalViolations}</td>
                 <td class="font-mono text-xs">${new Date(row.submittedAt).toLocaleString()}</td>
+                <td>
+                  <button type="button" class="btn-secondary px-2 py-1 text-xs text-bolt-red hover:bg-bolt-red hover:text-white border-bolt-red/30 transition-colors" data-delete-id="${row.id}" data-student-name="${escapeHtml(row.studentName)}" data-roll-number="${escapeHtml(row.rollNumber)}" title="Delete submission to allow student to retake">
+                    Allow Retake
+                  </button>
+                </td>
               </tr>
-            `).join('') || '<tr><td colspan="9" class="text-bolt-caption">No submissions yet.</td></tr>'}
+            `).join('') || '<tr><td colspan="10" class="text-bolt-caption">No submissions yet.</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -53,9 +58,36 @@ export async function renderSubmissionsPage(container, { examId }) {
 
     bodyEl.querySelector('#btn-back-exams')?.addEventListener('click', () => navigate('/admin/exams'));
     bodyEl.querySelectorAll('tr[data-id]').forEach((row) => {
-      row.addEventListener('click', () => navigate(`/admin/submissions/${row.dataset.id}`));
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('[data-delete-id]')) return;
+        navigate(`/admin/submissions/${row.dataset.id}`);
+      });
+    });
+
+    bodyEl.querySelectorAll('[data-delete-id]').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const studentName = btn.dataset.studentName || 'this student';
+        const rollNumber = btn.dataset.rollNumber ? ` (${btn.dataset.rollNumber})` : '';
+        if (!confirm(`Delete submission for ${studentName}${rollNumber}?\n\nThis will allow the student to reappear and retake the exam.`)) {
+          return;
+        }
+        sound.playClick();
+        btn.disabled = true;
+        btn.textContent = 'Deleting…';
+        try {
+          await adminFetch(`/api/admin/submissions?id=${btn.dataset.deleteId}`, { method: 'DELETE' });
+          alert(`Submission deleted. ${studentName} can now reappear for this exam.`);
+          renderSubmissionsPage(container, { examId });
+        } catch (err) {
+          alert(`Failed to delete: ${err.message}`);
+          btn.disabled = false;
+          btn.textContent = 'Allow Retake';
+        }
+      });
     });
   } catch (err) {
     bodyEl.innerHTML = `<p class="text-sm text-bolt-red">${escapeHtml(err.message)}</p>`;
   }
 }
+

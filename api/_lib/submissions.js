@@ -118,3 +118,22 @@ export async function getSubmission(id) {
     submittedAt: data.submitted_at,
   };
 }
+
+export async function deleteSubmission(id) {
+  if (!id) {
+    return { ok: false, status: 400, error: 'Submission id is required' };
+  }
+
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from('submissions')
+    .delete()
+    .eq('id', id)
+    .select('id, exam_id, student_id, student_name, roll_number')
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return { ok: false, status: 404, error: 'Submission not found' };
+
+  return { ok: true, deleted: data };
+}

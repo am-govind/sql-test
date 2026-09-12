@@ -39,6 +39,11 @@ export function mountApiRoutes(app) {
   api.post('/submissions', adapt(submissionsHandler));
 
   api.get('/admin/submissions', adapt(adminSubmissionsHandler));
+  api.delete('/admin/submissions', adapt(adminSubmissionsHandler));
+  api.delete('/admin/submissions/:id', (req, res) => {
+    req.query = { ...req.query, id: req.params.id };
+    return adminSubmissionsHandler(req, res);
+  });
   api.get('/admin/analytics', adapt(adminAnalyticsHandler));
 
   api.get('/admin/students', adapt(adminStudentsHandler));

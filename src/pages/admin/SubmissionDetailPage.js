@@ -33,14 +33,21 @@ export async function renderSubmissionDetailPage(container, { submissionId }) {
 
     bodyEl.innerHTML = `
       <div class="space-y-6">
-        <div class="no-print flex items-center gap-2">
-          <button id="btn-back" type="button" class="btn-secondary px-3 py-1.5 text-xs">Back</button>
-          <button id="btn-export-json" type="button" class="btn-secondary px-3 py-1.5 text-xs">
-            ${icons.download('w-4 h-4')}<span>Export JSON</span>
-          </button>
-          <button id="btn-print" type="button" class="btn-secondary px-3 py-1.5 text-xs">
-            ${icons.printer('w-4 h-4')}<span>Print</span>
-          </button>
+        <div class="no-print flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <button id="btn-back" type="button" class="btn-secondary px-3 py-1.5 text-xs">Back</button>
+            <button id="btn-export-json" type="button" class="btn-secondary px-3 py-1.5 text-xs">
+              ${icons.download('w-4 h-4')}<span>Export JSON</span>
+            </button>
+            <button id="btn-print" type="button" class="btn-secondary px-3 py-1.5 text-xs">
+              ${icons.printer('w-4 h-4')}<span>Print</span>
+            </button>
+          </div>
+          <div>
+            <button id="btn-delete-submission" type="button" class="btn-secondary px-3 py-1.5 text-xs text-bolt-red hover:bg-bolt-red hover:text-white border-bolt-red/40 hover:border-bolt-red transition-colors flex items-center gap-1.5">
+              ${icons.trash('w-3.5 h-3.5')}<span>Delete Submission (Allow retake)</span>
+            </button>
+          </div>
         </div>
 
         ${autoSubmitted ? `
@@ -132,6 +139,35 @@ export async function renderSubmissionDetailPage(container, { submissionId }) {
       link.click();
       URL.revokeObjectURL(url);
     });
+    bodyEl.querySelector('#btn-delete-submission')?.addEventListener('click', async () => {
+      const studentName = submission.studentName || 'this student';
+      const rollNumber = submission.rollNumber ? ` (${submission.rollNumber})` : '';
+      if (!confirm(`Are you sure you want to delete the submission for ${studentName}${rollNumber}?\n\nThis will permanently remove their submission record and allow them to reappear and retake the exam.`)) {
+        return;
+      }
+      sound.playClick();
+      const deleteBtn = bodyEl.querySelector('#btn-delete-submission');
+      if (deleteBtn) {
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = 'Deleting…';
+      }
+      try {
+        await adminFetch(`/api/admin/submissions?id=${submission.id}`, { method: 'DELETE' });
+        alert(`Submission deleted successfully.\n${studentName} can now reappear for this exam.`);
+        if (submission.examId) {
+          navigate(`/admin/exams/${submission.examId}/submissions`);
+        } else {
+          navigate('/admin/exams');
+        }
+      } catch (delErr) {
+        alert(`Failed to delete submission: ${delErr.message}`);
+        if (deleteBtn) {
+          deleteBtn.disabled = false;
+          deleteBtn.innerHTML = `${icons.trash('w-3.5 h-3.5')}<span>Delete Submission (Allow retake)</span>`;
+        }
+      }
+    });
+
   } catch (err) {
     bodyEl.innerHTML = `<p class="text-sm text-bolt-red">${escapeHtml(err.message)}</p>`;
   }
