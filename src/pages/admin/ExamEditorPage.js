@@ -375,6 +375,9 @@ async function wireEnrollmentSection(container, examId) {
   const dropdownMenu = container.querySelector('#enrollment-dropdown-menu');
   const dropdownBtnLabel = container.querySelector('#dropdown-btn-label');
   const summaryEl = container.querySelector('#enrollment-summary');
+  const enrollmentCountEl = container.querySelector('#enrollment-count');
+  const availableCountEl = container.querySelector('#available-count');
+  const selectionHintEl = container.querySelector('#selection-hint');
 
   let allStudents = [];
   let enrolledIds = new Set();
@@ -401,7 +404,11 @@ async function wireEnrollmentSection(container, examId) {
 
   function updateChipsAndStatus() {
     const enrolledStudents = allStudents.filter(s => enrolledIds.has(s.id));
+    const availableCount = Math.max(0, allStudents.length - enrolledStudents.length);
     summaryEl.textContent = `${enrolledStudents.length} of ${allStudents.length} students enrolled`;
+    enrollmentCountEl.textContent = enrolledStudents.length;
+    availableCountEl.textContent = availableCount;
+    selectionHintEl.textContent = enrolledStudents.length ? `${enrolledStudents.length} selected` : 'No students selected';
     dropdownBtnLabel.textContent = enrolledStudents.length === 0
       ? 'Select students to enroll…'
       : `${enrolledStudents.length} student${enrolledStudents.length === 1 ? '' : 's'} selected`;
@@ -411,14 +418,18 @@ async function wireEnrollmentSection(container, examId) {
       chipsContainer.appendChild(chipsEmptyMsg);
       chipsEmptyMsg.classList.remove('hidden');
     } else {
-      chipsContainer.innerHTML = enrolledStudents.map(s => `
-        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200 shadow-2xs">
-          <span>${escapeHtml(s.fullName)}</span>
-          <span class="font-mono text-[10px] text-blue-600">(${escapeHtml(s.rollNumber)})</span>
-          ${submissionsByStudent.has(s.id) ? `<button type="button" class="rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 hover:bg-amber-100" data-retake-id="${s.id}" data-retake-submission="${submissionsByStudent.get(s.id).id}">Allow retake</button>` : ''}
-          <button type="button" class="text-blue-500 hover:text-blue-800 ml-0.5 font-bold cursor-pointer" data-remove-id="${s.id}" title="Remove student">×</button>
-        </span>
-      `).join('');
+      chipsContainer.innerHTML = `<div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">${enrolledStudents.map(s => `
+        <div class="flex min-w-0 items-center justify-between gap-2 rounded-md border border-blue-100 bg-blue-50/50 px-2.5 py-2">
+          <div class="min-w-0">
+            <div class="truncate text-xs font-semibold text-bolt-ink">${escapeHtml(s.fullName)}</div>
+            <div class="font-mono text-[10px] text-bolt-muted">${escapeHtml(s.rollNumber)}</div>
+          </div>
+          <div class="flex shrink-0 items-center gap-1">
+            ${submissionsByStudent.has(s.id) ? `<button type="button" class="rounded border border-amber-300 bg-amber-50 px-1.5 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-100" data-retake-id="${s.id}" data-retake-submission="${submissionsByStudent.get(s.id).id}">Retake</button>` : '<span class="text-[10px] font-medium text-emerald-600">Eligible</span>'}
+            <button type="button" class="rounded px-1.5 py-1 text-sm font-bold text-bolt-muted hover:bg-white hover:text-bolt-red" data-remove-id="${s.id}" title="Remove student">×</button>
+          </div>
+        </div>
+      `).join('')}</div>`;
 
       chipsContainer.querySelectorAll('[data-remove-id]').forEach(btn => {
         btn.addEventListener('click', (e) => {
