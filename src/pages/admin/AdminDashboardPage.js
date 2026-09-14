@@ -9,9 +9,11 @@ import { timer } from '../../services/timer.js';
 import { adminShell, wireAdminShell, escapeHtml, formatDuration } from './adminShell.js';
 
 export async function renderAdminDashboardPage(container) {
+  const { data: { user } } = await supabase.auth.getUser();
   const { data: exams } = await supabase
     .from('exams')
     .select('id, title')
+    .eq('created_by', user.id)
     .order('created_at', { ascending: false });
 
   container.innerHTML = adminShell({

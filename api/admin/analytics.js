@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   try {
     const examId = req.query.examId || null;
-    const analytics = await computeAnalytics({ examId });
+    const analytics = await computeAnalytics({ examId, ownerId: auth.user.id });
     sendJson(res, 200, { analytics });
   } catch (err) {
     console.error('[api/admin/analytics]', err);

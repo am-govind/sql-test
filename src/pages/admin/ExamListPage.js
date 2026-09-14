@@ -11,6 +11,7 @@ export async function renderAdminExamListPage(container) {
   const { data: exams, error } = await supabase
     .from('exams')
     .select('id, title, status, lesson_ids, duration_sec, created_at')
+    .eq('created_by', (await supabase.auth.getUser()).data.user.id)
     .order('created_at', { ascending: false });
 
   container.innerHTML = adminShell({
