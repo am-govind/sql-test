@@ -105,7 +105,7 @@ export async function getSubmission(id, organizationId) {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from('submissions')
-    .select('*, exams(title, organization_id)')
+    .select('*, exams!submissions_exam_org_fkey(title, organization_id)')
     .eq('id', id)
     .maybeSingle();
 
