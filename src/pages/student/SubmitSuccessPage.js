@@ -5,6 +5,7 @@
 import { boltShell, boltWordmark } from '../../components/BoltShell.js';
 import { icons } from '../../components/Icons.js';
 import { state } from '../../services/state.js';
+import { navigate } from '../../router.js';
 import { escapeHtml } from '../admin/adminShell.js';
 
 export function renderSubmitSuccessPage(container, { examId }) {
@@ -60,7 +61,15 @@ export function renderSubmitSuccessPage(container, { examId }) {
         <p class="text-xs text-bolt-caption">
           You may close this window. Scores and detailed reports are visible to your instructor only.
         </p>
+
+        <button type="button" id="btn-student-home" class="btn-primary mx-auto px-5 py-2.5 text-sm">
+          Go to home
+        </button>
       </div>
     `,
+  });
+
+  container.querySelector('#btn-student-home')?.addEventListener('click', () => {
+    navigate('/student');
   });
 }
