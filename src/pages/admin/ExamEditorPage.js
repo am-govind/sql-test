@@ -3,7 +3,7 @@
  */
 
 import { LESSONS, LESSON_CATEGORIES } from '../../data/lessons.js';
-import { supabase, adminFetch } from '../../lib/supabase.js';
+import { supabase, adminFetch, getCurrentOrganization } from '../../lib/supabase.js';
 import { navigate } from '../../router.js';
 import { sound } from '../../services/sound.js';
 import { adminShell, wireAdminShell, escapeHtml } from './adminShell.js';
@@ -283,9 +283,15 @@ export async function renderExamEditorPage(container, { examId = null }) {
     }
 
     const { data: { user } } = await supabase.auth.getUser();
+    const organization = await getCurrentOrganization();
+    if (!organization) {
+      errorEl.textContent = 'No organization is assigned to this admin.';
+      errorEl.classList.remove('hidden');
+      return;
+    }
     const query = examId
       ? supabase.from('exams').update(payload).eq('id', examId).eq('created_by', user.id)
-      : supabase.from('exams').insert({ ...payload, created_by: user.id }).select('id').single();
+      : supabase.from('exams').insert({ ...payload, created_by: user.id, organization_id: organization.id }).select('id').single();
 
     const { data, error } = await query;
     if (error) {

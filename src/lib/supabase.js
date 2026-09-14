@@ -22,6 +22,19 @@ export async function requireAdminSession() {
   return { session: data.session };
 }
 
+export async function getCurrentOrganization() {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data, error } = await supabase
+    .from('organization_members')
+    .select('organization_id, organizations(id, name)')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.organizations || null;
+}
+
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, '') || '';
 
 function apiUrl(path) {
