@@ -193,8 +193,11 @@ export async function renderExamEditorPage(container, { examId = null, showEnrol
                 </div>
                 <a href="/admin/students" data-nav class="text-xs text-bolt-link hover:underline">Add or import students</a>
               </div>
-              <div id="enrolled-chips-container" class="min-h-[38px] p-2 bg-white border border-blue-100 rounded flex flex-wrap gap-1.5 items-center">
-                <span class="text-xs text-bolt-muted italic" id="chips-empty-msg">No students enrolled yet.</span>
+              <div id="enrolled-chips-container" class="min-h-[54px] p-2 bg-white border border-blue-100 rounded flex flex-wrap gap-1.5 items-center">
+                <span class="flex items-center gap-2 text-xs text-bolt-muted" id="chips-empty-msg">
+                  <span class="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-bolt-border border-t-bolt-blue"></span>
+                  Loading enrollment…
+                </span>
               </div>
             </div>
 
@@ -218,7 +221,10 @@ export async function renderExamEditorPage(container, { examId = null, showEnrol
                   <button type="button" id="btn-clear-all-students" class="text-xs text-bolt-muted hover:text-bolt-red hover:underline whitespace-nowrap px-1">Clear</button>
                 </div>
                 <div id="enrollment-list" class="space-y-0.5 p-1.5 text-xs divide-y divide-slate-100 overflow-y-auto" style="max-height: 185px;">
-                  <p class="text-bolt-muted p-2">Loading roster…</p>
+                  <div class="flex items-center gap-2 p-3 text-xs text-bolt-muted">
+                    <span class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-bolt-border border-t-bolt-blue"></span>
+                    Loading organization roster…
+                  </div>
                 </div>
               </div>
             </div>
@@ -334,6 +340,8 @@ async function wireEnrollmentSection(container, examId) {
 
   let allStudents = [];
   let enrolledIds = new Set();
+  toggleBtn.disabled = true;
+  toggleBtn.classList.add('opacity-60', 'cursor-wait');
 
   try {
     const [{ students }, { enrollments }] = await Promise.all([
@@ -342,8 +350,11 @@ async function wireEnrollmentSection(container, examId) {
     ]);
     allStudents = students || [];
     enrolledIds = new Set((enrollments || []).map((e) => e.studentId));
+    toggleBtn.disabled = false;
+    toggleBtn.classList.remove('opacity-60', 'cursor-wait');
   } catch (err) {
     listEl.innerHTML = `<p class="text-bolt-red p-2">${escapeHtml(err.message)}</p>`;
+    chipsEmptyMsg.innerHTML = `<span class="text-bolt-red">Unable to load enrollment data. Refresh and try again.</span>`;
     return;
   }
 
@@ -388,7 +399,10 @@ async function wireEnrollmentSection(container, examId) {
     });
 
     if (filtered.length === 0) {
-      listEl.innerHTML = '<p class="text-bolt-caption p-2">No students match search.</p>';
+      listEl.innerHTML = allStudents.length
+        ? '<p class="text-bolt-caption p-2">No students match your search.</p>'
+        : '<div class="space-y-1 p-3 text-xs text-bolt-muted"><p>No students have been added to this organization yet.</p><a href="/admin/students" data-nav class="text-bolt-link hover:underline">Add or import students →</a></div>';
+      wireAdminShell(container);
       return;
     }
 
