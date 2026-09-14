@@ -38,11 +38,13 @@ export async function renderAdminExamListPage(container) {
                   <td><span class="text-xs font-bold uppercase ${statusTone(exam.status)}">${exam.status}</span></td>
                   <td class="font-mono">${exam.lesson_ids?.length ?? 0}</td>
                   <td class="font-mono">${formatDuration(exam.duration_sec)}</td>
-                  <td class="space-x-2 whitespace-nowrap">
-                    <button type="button" class="text-xs text-bolt-link hover:underline" data-edit="${exam.id}">Edit</button>
-                    <button type="button" class="text-xs text-bolt-link hover:underline" data-enrollment="${exam.id}">Enrollment</button>
-                    <button type="button" class="text-xs text-bolt-link hover:underline" data-scores="${exam.id}">Scores</button>
-                    <button type="button" class="text-xs text-bolt-muted hover:underline" data-copy="${exam.id}">Copy link</button>
+                  <td>
+                    <div class="flex flex-wrap gap-1.5 whitespace-nowrap">
+                      <button type="button" class="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-bolt-link transition-colors hover:bg-blue-100" data-edit="${exam.id}">Edit</button>
+                      <button type="button" class="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100" data-enrollment="${exam.id}">Enrollment</button>
+                      <button type="button" class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100" data-scores="${exam.id}">Scores</button>
+                      <button type="button" class="rounded-full border border-bolt-border bg-white px-2.5 py-1 text-xs font-semibold text-bolt-muted transition-colors hover:border-bolt-blue hover:text-bolt-link" data-copy="${exam.id}">Copy link</button>
+                    </div>
                   </td>
                 </tr>
               `).join('') || '<tr><td colspan="5" class="text-bolt-caption">No exams yet.</td></tr>'}
