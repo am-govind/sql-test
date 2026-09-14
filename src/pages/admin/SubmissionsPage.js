@@ -72,7 +72,6 @@ export async function renderSubmissionsPage(container, { examId }) {
         if (!confirm(`Delete submission for ${studentName}${rollNumber}?\n\nThis will allow the student to reappear and retake the exam.`)) {
           return;
         }
-        sound.playClick();
         btn.disabled = true;
         btn.textContent = 'Deleting…';
         try {
@@ -90,4 +89,3 @@ export async function renderSubmissionsPage(container, { examId }) {
     bodyEl.innerHTML = `<p class="text-sm text-bolt-red">${escapeHtml(err.message)}</p>`;
   }
 }
-
