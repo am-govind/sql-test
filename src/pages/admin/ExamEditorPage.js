@@ -414,9 +414,15 @@ async function wireEnrollmentSection(container, examId) {
       : `${enrolledStudents.length} student${enrolledStudents.length === 1 ? '' : 's'} selected`;
 
     if (enrolledStudents.length === 0) {
-      chipsContainer.innerHTML = '';
-      chipsContainer.appendChild(chipsEmptyMsg);
-      chipsEmptyMsg.classList.remove('hidden');
+      chipsContainer.innerHTML = `
+        <div class="flex min-h-[62px] items-center justify-center rounded-md border border-dashed border-bolt-border bg-slate-50/60 px-4 text-center">
+          <div>
+            <p class="text-xs font-semibold text-bolt-slate">No students enrolled yet</p>
+            <p class="mt-0.5 text-[11px] text-bolt-muted">Choose students below, then select Save enrollment.</p>
+          </div>
+        </div>
+      `;
+      chipsEmptyMsg.classList.add('hidden');
     } else {
       chipsContainer.innerHTML = `<div class="overflow-x-auto"><table class="bolt-table w-full">
         <thead>
