@@ -249,17 +249,18 @@ export async function getEnrolledExamForStudent(studentId, examId) {
   if (!enrolled) return { ok: false, status: 403, error: 'Not enrolled in this exam' };
 
   const supabase = createServiceClient();
-  const { data, error } = await supabase
-    .from('exams')
-    .select('*')
-    .eq('id', examId)
-    .eq('status', 'active')
-    .maybeSingle();
+  const [{ data, error }, alreadySubmitted] = await Promise.all([
+    supabase
+      .from('exams')
+      .select('*')
+      .eq('id', examId)
+      .eq('status', 'active')
+      .maybeSingle(),
+    hasStudentSubmitted(studentId, examId),
+  ]);
 
   if (error) throw error;
   if (!data) return { ok: false, status: 404, error: 'Exam not found or not active' };
-
-  const alreadySubmitted = await hasStudentSubmitted(studentId, examId);
 
   return {
     ok: true,

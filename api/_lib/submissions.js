@@ -15,7 +15,12 @@ export async function createSubmission(payload) {
     return { ok: false, status: 400, error: 'studentId and examId are required' };
   }
 
-  const examResult = await getEnrolledExamForStudent(studentId, examId);
+  // Both checks are read-only and independent. Run them together so the
+  // serverless function reaches the final insert with fewer serial waits.
+  const [examResult, student] = await Promise.all([
+    getEnrolledExamForStudent(studentId, examId),
+    getStudentById(studentId),
+  ]);
   if (!examResult.ok) {
     return { ok: false, status: examResult.status, error: examResult.error };
   }
@@ -24,7 +29,6 @@ export async function createSubmission(payload) {
     return { ok: false, status: 409, error: 'You have already submitted this exam' };
   }
 
-  const student = await getStudentById(studentId);
   if (!student) {
     return { ok: false, status: 401, error: 'Student not found' };
   }
