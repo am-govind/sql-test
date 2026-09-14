@@ -64,14 +64,12 @@ export async function getSubmission(id) {
 
 export async function computeAnalytics({ examId, organizationId }) {
   const supabase = createServiceClient();
-  const { data: ownedExams, error: ownerError } = await supabase.from('exams').select('id').eq('organization_id', organizationId);
-  if (ownerError) throw ownerError;
-  const ownedIds = (ownedExams || []).map((exam) => exam.id);
   let query = supabase
     .from('submissions')
-    .select('id, student_name, roll_number, analytics, violations, lesson_results, submitted_at, submission_reason');
+    .select('id, student_name, roll_number, analytics, violations, lesson_results, submitted_at, submission_reason')
+    .eq('organization_id', organizationId);
 
-  query = query.in('exam_id', examId ? ownedIds.includes(examId) ? [examId] : [] : ownedIds);
+  if (examId) query = query.eq('exam_id', examId);
 
   const { data, error } = await query;
   if (error) throw error;
