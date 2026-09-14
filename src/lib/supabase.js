@@ -13,7 +13,16 @@ export const supabase = supabaseConfigured
 export async function getAccessToken() {
   if (!supabase) return null;
   const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ?? null;
+  if (!data.session) return null;
+
+  // Refresh before expiry; serverless requests can otherwise receive a token
+  // that expired while the admin tab was left open.
+  const expiresAt = data.session.expires_at || 0;
+  if (expiresAt * 1000 - Date.now() < 60_000) {
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    return refreshed.session?.access_token ?? null;
+  }
+  return data.session.access_token;
 }
 
 export async function requireAdminSession() {
@@ -51,16 +60,21 @@ function apiUrl(path) {
 }
 
 export async function adminFetch(path, options = {}) {
-  const token = await getAccessToken();
-  const headers = { ...(options.headers || {}) };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const organizationId = sessionStorage.getItem(ORG_KEY);
-  if (organizationId) headers['X-Organization-Id'] = organizationId;
-  if (options.body && !headers['Content-Type']) {
-    headers['Content-Type'] = 'application/json';
+  async function sendRequest() {
+    const token = await getAccessToken();
+    const headers = { ...(options.headers || {}) };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const organizationId = sessionStorage.getItem(ORG_KEY);
+    if (organizationId) headers['X-Organization-Id'] = organizationId;
+    if (options.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+    return fetch(apiUrl(path), { ...options, headers });
   }
 
-  const response = await fetch(apiUrl(path), { ...options, headers });
+  let response = await sendRequest();
+  if (response.status === 401 && supabase) {
+    await supabase.auth.refreshSession();
+    response = await sendRequest();
+  }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(data.error || `Request failed (${response.status})`);
