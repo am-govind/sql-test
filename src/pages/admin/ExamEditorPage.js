@@ -62,7 +62,7 @@ export async function renderExamEditorPage(container, { examId = null, showEnrol
 
   container.innerHTML = adminShell({
     title: examId ? 'Edit exam' : 'New exam',
-    width: 'max-w-4xl',
+    width: showEnrollment ? 'max-w-6xl' : 'max-w-4xl',
     cardOverflow: 'overflow-visible',
     body: `
       <form id="exam-editor-form" class="space-y-6 px-6 py-6">
@@ -418,20 +418,21 @@ async function wireEnrollmentSection(container, examId) {
       chipsContainer.appendChild(chipsEmptyMsg);
       chipsEmptyMsg.classList.remove('hidden');
     } else {
-      chipsContainer.innerHTML = `<div class="overflow-x-auto"><table class="w-full text-left text-xs">
-        <thead class="border-b border-blue-100 text-[10px] uppercase tracking-wide text-bolt-muted">
-          <tr><th class="px-3 py-2 font-bold">Student</th><th class="px-3 py-2 font-bold">Roll number</th><th class="px-3 py-2 font-bold">Access</th><th class="px-3 py-2 text-right font-bold">Actions</th></tr>
+      chipsContainer.innerHTML = `<div class="overflow-x-auto"><table class="bolt-table w-full">
+        <thead>
+          <tr><th>#</th><th>Student</th><th>Roll</th><th>Access</th><th class="text-right">Action</th></tr>
         </thead>
-        <tbody class="divide-y divide-blue-50">${enrolledStudents.map(s => `
-          <tr class="hover:bg-blue-50/40">
-            <td class="px-3 py-2.5 font-semibold text-bolt-ink">${escapeHtml(s.fullName)}</td>
-            <td class="px-3 py-2.5 font-mono text-[11px] text-bolt-muted">${escapeHtml(s.rollNumber)}</td>
-            <td class="px-3 py-2.5">${submissionsByStudent.has(s.id)
+        <tbody>${enrolledStudents.map((s, index) => `
+          <tr>
+            <td class="font-mono text-bolt-muted">${index + 1}</td>
+            <td class="font-bold text-bolt-ink">${escapeHtml(s.fullName)}</td>
+            <td class="font-mono text-xs">${escapeHtml(s.rollNumber)}</td>
+            <td>${submissionsByStudent.has(s.id)
               ? '<span class="font-semibold text-amber-700">Submitted · retake available</span>'
               : '<span class="font-semibold text-emerald-600">Eligible</span>'}</td>
-            <td class="px-3 py-2.5"><div class="flex justify-end gap-1.5">
-              ${submissionsByStudent.has(s.id) ? `<button type="button" class="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-100" data-retake-id="${s.id}" data-retake-submission="${submissionsByStudent.get(s.id).id}">Allow retake</button>` : ''}
-              <button type="button" class="rounded border border-bolt-border px-2 py-1 text-[10px] font-semibold text-bolt-muted hover:border-bolt-red hover:text-bolt-red" data-remove-id="${s.id}">Remove</button>
+            <td><div class="flex justify-end gap-1.5">
+              ${submissionsByStudent.has(s.id) ? `<button type="button" class="btn-secondary px-2 py-1 text-xs text-bolt-amber hover:bg-bolt-amber/10" data-retake-id="${s.id}" data-retake-submission="${submissionsByStudent.get(s.id).id}">Allow retake</button>` : ''}
+              <button type="button" class="btn-secondary px-2 py-1 text-xs text-bolt-red hover:bg-bolt-red hover:text-white" data-remove-id="${s.id}">Remove</button>
             </div></td>
           </tr>
         `).join('')}</tbody>
