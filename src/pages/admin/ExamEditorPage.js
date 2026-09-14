@@ -182,7 +182,7 @@ export async function renderExamEditorPage(container, { examId = null, showEnrol
                   <h2 class="pt-1 font-display text-lg font-bold text-bolt-ink">Choose who can take this exam</h2>
                   <p class="pt-1 text-xs text-bolt-slate">Only enrolled students in the selected organization will see this exam after signing in.</p>
                 </div>
-                <div class="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-bolt-slate shadow-sm">Step 2 of 2</div>
+                <div class="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-bolt-slate shadow-sm">Enrollment setup</div>
               </div>
               <div class="mt-4 grid gap-2 sm:grid-cols-3">
                 <div class="rounded-md bg-white/80 p-2.5"><div class="text-[10px] uppercase tracking-wide text-bolt-muted">Eligibility</div><div class="pt-1 text-xs font-semibold text-bolt-ink">Organization members</div></div>
@@ -418,18 +418,24 @@ async function wireEnrollmentSection(container, examId) {
       chipsContainer.appendChild(chipsEmptyMsg);
       chipsEmptyMsg.classList.remove('hidden');
     } else {
-      chipsContainer.innerHTML = `<div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">${enrolledStudents.map(s => `
-        <div class="flex min-w-0 items-center justify-between gap-2 rounded-md border border-blue-100 bg-blue-50/50 px-2.5 py-2">
-          <div class="min-w-0">
-            <div class="truncate text-xs font-semibold text-bolt-ink">${escapeHtml(s.fullName)}</div>
-            <div class="font-mono text-[10px] text-bolt-muted">${escapeHtml(s.rollNumber)}</div>
-          </div>
-          <div class="flex shrink-0 items-center gap-1">
-            ${submissionsByStudent.has(s.id) ? `<button type="button" class="rounded border border-amber-300 bg-amber-50 px-1.5 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-100" data-retake-id="${s.id}" data-retake-submission="${submissionsByStudent.get(s.id).id}">Retake</button>` : '<span class="text-[10px] font-medium text-emerald-600">Eligible</span>'}
-            <button type="button" class="rounded px-1.5 py-1 text-sm font-bold text-bolt-muted hover:bg-white hover:text-bolt-red" data-remove-id="${s.id}" title="Remove student">×</button>
-          </div>
-        </div>
-      `).join('')}</div>`;
+      chipsContainer.innerHTML = `<div class="overflow-x-auto"><table class="w-full text-left text-xs">
+        <thead class="border-b border-blue-100 text-[10px] uppercase tracking-wide text-bolt-muted">
+          <tr><th class="px-3 py-2 font-bold">Student</th><th class="px-3 py-2 font-bold">Roll number</th><th class="px-3 py-2 font-bold">Access</th><th class="px-3 py-2 text-right font-bold">Actions</th></tr>
+        </thead>
+        <tbody class="divide-y divide-blue-50">${enrolledStudents.map(s => `
+          <tr class="hover:bg-blue-50/40">
+            <td class="px-3 py-2.5 font-semibold text-bolt-ink">${escapeHtml(s.fullName)}</td>
+            <td class="px-3 py-2.5 font-mono text-[11px] text-bolt-muted">${escapeHtml(s.rollNumber)}</td>
+            <td class="px-3 py-2.5">${submissionsByStudent.has(s.id)
+              ? '<span class="font-semibold text-amber-700">Submitted · retake available</span>'
+              : '<span class="font-semibold text-emerald-600">Eligible</span>'}</td>
+            <td class="px-3 py-2.5"><div class="flex justify-end gap-1.5">
+              ${submissionsByStudent.has(s.id) ? `<button type="button" class="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-100" data-retake-id="${s.id}" data-retake-submission="${submissionsByStudent.get(s.id).id}">Allow retake</button>` : ''}
+              <button type="button" class="rounded border border-bolt-border px-2 py-1 text-[10px] font-semibold text-bolt-muted hover:border-bolt-red hover:text-bolt-red" data-remove-id="${s.id}">Remove</button>
+            </div></td>
+          </tr>
+        `).join('')}</tbody>
+      </table></div>`;
 
       chipsContainer.querySelectorAll('[data-remove-id]').forEach(btn => {
         btn.addEventListener('click', (e) => {
