@@ -1,5 +1,8 @@
 import { createServiceClient } from '../_lib/supabase.js';
 
+const ANALYTICS_CACHE_MS = 15_000;
+const analyticsCache = new Map();
+
 function scoreBucket(percentage) {
   if (percentage >= 85) return '85-100';
   if (percentage >= 70) return '70-84';
@@ -63,10 +66,14 @@ export async function getSubmission(id) {
 }
 
 export async function computeAnalytics({ examId, organizationId }) {
+  const cacheKey = `${organizationId}:${examId || 'all'}`;
+  const cached = analyticsCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+
   const supabase = createServiceClient();
   let query = supabase
     .from('submissions')
-    .select('id, student_name, roll_number, analytics, violations, lesson_results, submitted_at, submission_reason')
+    .select('id, student_id, student_name, roll_number, analytics, violations, lesson_results, submitted_at, submission_reason')
     .eq('organization_id', organizationId);
 
   if (examId) query = query.eq('exam_id', examId);
@@ -78,7 +85,7 @@ export async function computeAnalytics({ examId, organizationId }) {
   const total = rows.length;
 
   if (total === 0) {
-    return {
+    const empty = {
       totalSubmissions: 0,
       avgScore: 0,
       passRate: 0,
@@ -90,6 +97,8 @@ export async function computeAnalytics({ examId, organizationId }) {
       recentSubmissions: [],
       violationSummary: {},
     };
+    analyticsCache.set(cacheKey, { value: empty, expiresAt: Date.now() + ANALYTICS_CACHE_MS });
+    return empty;
   }
 
   let scoreSum = 0;
@@ -123,7 +132,18 @@ export async function computeAnalytics({ examId, organizationId }) {
     }
   }
 
-  const leaderboard = rows
+  // Keep totals based on every attempt, but show only the latest attempt per
+  // student in the leaderboard to avoid duplicate rows after retakes.
+  const latestByStudent = new Map();
+  for (const row of rows) {
+    const key = row.student_id || row.roll_number;
+    const previous = latestByStudent.get(key);
+    if (!previous || new Date(row.submitted_at) > new Date(previous.submitted_at)) {
+      latestByStudent.set(key, row);
+    }
+  }
+
+  const leaderboard = [...latestByStudent.values()]
     .map((row) => ({
       id: row.id,
       studentName: row.student_name,
@@ -162,7 +182,7 @@ export async function computeAnalytics({ examId, organizationId }) {
       submittedAt: row.submitted_at,
     }));
 
-  return {
+  const result = {
     totalSubmissions: total,
     avgScore: Math.round(scoreSum / total),
     passRate: Math.round((passCount / total) * 100),
@@ -174,4 +194,6 @@ export async function computeAnalytics({ examId, organizationId }) {
     recentSubmissions,
     violationSummary,
   };
+  analyticsCache.set(cacheKey, { value: result, expiresAt: Date.now() + ANALYTICS_CACHE_MS });
+  return result;
 }
