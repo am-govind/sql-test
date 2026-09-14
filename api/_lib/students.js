@@ -281,7 +281,7 @@ export async function listEnrollmentsForExam(examId, organizationId) {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from('exam_enrollments')
-    .select('id, student_id, enrolled_at, students(id, full_name, roll_number, email)')
+    .select('id, student_id, enrolled_at, students!exam_enrollments_student_org_fkey(id, full_name, roll_number, email)')
     .eq('exam_id', examId)
     .eq('organization_id', organizationId)
     .order('enrolled_at', { ascending: true });
