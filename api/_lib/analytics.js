@@ -71,14 +71,10 @@ export async function computeAnalytics({ examId, organizationId }) {
   if (cached && cached.expiresAt > Date.now()) return cached.value;
 
   const supabase = createServiceClient();
-  let query = supabase
-    .from('submissions')
-    .select('id, student_id, student_name, roll_number, analytics, violations, lesson_results, submitted_at, submission_reason')
-    .eq('organization_id', organizationId);
-
-  if (examId) query = query.eq('exam_id', examId);
-
-  const { data, error } = await query;
+  const { data, error } = await supabase.rpc('get_analytics_submissions', {
+    p_organization_id: organizationId,
+    p_exam_id: examId || null,
+  });
   if (error) throw error;
 
   const rows = data || [];
