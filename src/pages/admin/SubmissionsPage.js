@@ -19,7 +19,7 @@ export async function renderSubmissionsPage(container, { examId }) {
   try {
     const [{ submissions }, { events }] = await Promise.all([
       adminFetch(`/api/admin/submissions?examId=${examId}`),
-      adminFetch(`/api/admin/proctoring-events?examId=${examId}`),
+      adminFetch(`/api/admin/submissions?proctoringEvents=true&examId=${examId}`),
     ]);
 
     bodyEl.innerHTML = `
@@ -128,7 +128,7 @@ export async function renderSubmissionsPage(container, { examId }) {
         const buttons = card.querySelectorAll('[data-review]');
         buttons.forEach((item) => { item.disabled = true; });
         try {
-          await adminFetch(`/api/admin/proctoring-events?id=${card.dataset.eventId}`, {
+          await adminFetch(`/api/admin/submissions?proctoringEventId=${card.dataset.eventId}`, {
             method: 'PATCH',
             body: JSON.stringify({
               reviewStatus: status,

@@ -9,7 +9,6 @@ import submissionsHandler from '../api/submissions.js';
 import adminSubmissionsHandler from '../api/admin/submissions.js';
 import adminAnalyticsHandler from '../api/admin/analytics.js';
 import adminStudentsHandler from '../api/admin/students.js';
-import adminStudentIdHandler from '../api/admin/students/[id].js';
 import adminEnrollmentsHandler from '../api/admin/exams/[examId]/enrollments.js';
 import studentLoginHandler from '../api/student/login.js';
 import studentExamsHandler from '../api/student/exams/index.js';
@@ -50,11 +49,11 @@ export function mountApiRoutes(app) {
   api.post('/admin/students', adapt(adminStudentsHandler));
   api.patch('/admin/students/:id', (req, res) => {
     req.query = { ...req.query, id: req.params.id };
-    return adminStudentIdHandler(req, res);
+    return adminStudentsHandler(req, res);
   });
   api.delete('/admin/students/:id', (req, res) => {
     req.query = { ...req.query, id: req.params.id };
-    return adminStudentIdHandler(req, res);
+    return adminStudentsHandler(req, res);
   });
 
   api.get('/admin/exams/:examId/enrollments', (req, res) => {

@@ -126,7 +126,7 @@ export async function renderStudentRosterPage(container) {
         btn.addEventListener('click', async () => {
           if (!confirm('Remove this student from the roster?')) return;
           sound.playClick();
-          await adminFetch(`/api/admin/students/${btn.dataset.delete}`, { method: 'DELETE' });
+          await adminFetch(`/api/admin/students?id=${btn.dataset.delete}`, { method: 'DELETE' });
           await loadRoster();
         });
       });

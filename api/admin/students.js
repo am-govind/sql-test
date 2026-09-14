@@ -1,5 +1,5 @@
 import { requireAdmin } from '../_lib/auth.js';
-import { listStudents, createStudent, batchCreateStudents } from '../_lib/students.js';
+import { listStudents, createStudent, batchCreateStudents, updateStudent, deleteStudent } from '../_lib/students.js';
 import { readJsonBody, sendJson } from '../_lib/http.js';
 
 export default async function handler(req, res) {
@@ -10,6 +10,25 @@ export default async function handler(req, res) {
   }
 
   try {
+    if (req.query.id && req.method === 'PATCH') {
+      const body = await readJsonBody(req);
+      const result = await updateStudent(req.query.id, {
+        fullName: body.fullName,
+        rollNumber: body.rollNumber,
+        email: body.email,
+        dob: body.dob,
+        organizationId: auth.organizationId,
+      });
+      sendJson(res, result.ok ? 200 : result.status, result.ok ? result : { error: result.error });
+      return;
+    }
+
+    if (req.query.id && req.method === 'DELETE') {
+      await deleteStudent(req.query.id, auth.organizationId);
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
     if (req.method === 'GET') {
       const students = await listStudents(auth.organizationId);
       sendJson(res, 200, { students });

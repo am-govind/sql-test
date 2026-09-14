@@ -92,8 +92,8 @@ export async function postStudentSubmission(payload) {
 }
 
 export async function createProctoringEvent(payload) {
-  return studentFetch('/api/student/proctoring-events', {
+  return studentFetch('/api/submissions', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, proctoringEvent: true }),
   });
 }

@@ -1,4 +1,5 @@
 import { createSubmission } from './_lib/submissions.js';
+import { createProctoringEvent } from './_lib/proctoring.js';
 import { requireStudent } from './_lib/student-auth.js';
 import { readJsonBody, sendJson } from './_lib/http.js';
 
@@ -16,6 +17,17 @@ export default async function handler(req, res) {
 
   try {
     const body = await readJsonBody(req);
+    if (body.proctoringEvent) {
+      const result = await createProctoringEvent({
+        studentId: auth.studentId,
+        examId: body.examId,
+        submissionId: body.submissionId,
+        violationType: body.violationType,
+        confidence: body.confidence,
+      });
+      sendJson(res, result.ok ? 201 : result.status, result.ok ? result : { error: result.error });
+      return;
+    }
     const result = await createSubmission({
       studentId: auth.studentId,
       examId: body.examId,
