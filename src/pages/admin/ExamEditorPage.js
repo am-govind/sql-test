@@ -175,6 +175,21 @@ export async function renderExamEditorPage(container, { examId = null, showEnrol
 
         ${examId && showEnrollment ? `
           <section id="enrollment-section" class="space-y-3 rounded-lg border border-bolt-border bg-white p-4 shadow-sm">
+            <div class="rounded-lg border border-blue-100 bg-gradient-to-r from-blue-50 to-slate-50 p-4">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p class="text-xs font-bold uppercase tracking-wider text-bolt-blue">Exam access control</p>
+                  <h2 class="pt-1 font-display text-lg font-bold text-bolt-ink">Choose who can take this exam</h2>
+                  <p class="pt-1 text-xs text-bolt-slate">Only enrolled students in the selected organization will see this exam after signing in.</p>
+                </div>
+                <div class="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-bolt-slate shadow-sm">Step 2 of 2</div>
+              </div>
+              <div class="mt-4 grid gap-2 sm:grid-cols-3">
+                <div class="rounded-md bg-white/80 p-2.5"><div class="text-[10px] uppercase tracking-wide text-bolt-muted">Eligibility</div><div class="pt-1 text-xs font-semibold text-bolt-ink">Organization members</div></div>
+                <div class="rounded-md bg-white/80 p-2.5"><div class="text-[10px] uppercase tracking-wide text-bolt-muted">Student access</div><div class="pt-1 text-xs font-semibold text-bolt-ink">After enrollment</div></div>
+                <div class="rounded-md bg-white/80 p-2.5"><div class="text-[10px] uppercase tracking-wide text-bolt-muted">Changes</div><div class="pt-1 text-xs font-semibold text-bolt-ink">Saved explicitly</div></div>
+              </div>
+            </div>
             <div class="flex items-center justify-between">
               <div>
                 <h2 class="font-display text-base font-semibold text-bolt-slate">Enrolled students</h2>
@@ -340,16 +355,19 @@ async function wireEnrollmentSection(container, examId) {
 
   let allStudents = [];
   let enrolledIds = new Set();
+  let submissionsByStudent = new Map();
   toggleBtn.disabled = true;
   toggleBtn.classList.add('opacity-60', 'cursor-wait');
 
   try {
-    const [{ students }, { enrollments }] = await Promise.all([
+    const [{ students }, { enrollments }, { submissions }] = await Promise.all([
       adminFetch('/api/admin/students'),
       adminFetch(`/api/admin/exams/${examId}/enrollments`),
+      adminFetch(`/api/admin/submissions?examId=${examId}`),
     ]);
     allStudents = students || [];
     enrolledIds = new Set((enrollments || []).map((e) => e.studentId));
+    submissionsByStudent = new Map((submissions || []).map((submission) => [submission.studentId, submission]));
     toggleBtn.disabled = false;
     toggleBtn.classList.remove('opacity-60', 'cursor-wait');
   } catch (err) {
@@ -374,6 +392,7 @@ async function wireEnrollmentSection(container, examId) {
         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200 shadow-2xs">
           <span>${escapeHtml(s.fullName)}</span>
           <span class="font-mono text-[10px] text-blue-600">(${escapeHtml(s.rollNumber)})</span>
+          ${submissionsByStudent.has(s.id) ? `<button type="button" class="rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 hover:bg-amber-100" data-retake-id="${s.id}" data-retake-submission="${submissionsByStudent.get(s.id).id}">Allow retake</button>` : ''}
           <button type="button" class="text-blue-500 hover:text-blue-800 ml-0.5 font-bold cursor-pointer" data-remove-id="${s.id}" title="Remove student">×</button>
         </span>
       `).join('');
@@ -384,6 +403,25 @@ async function wireEnrollmentSection(container, examId) {
           enrolledIds.delete(btn.dataset.removeId);
           updateChipsAndStatus();
           renderList();
+        });
+      });
+
+      chipsContainer.querySelectorAll('[data-retake-id]').forEach(btn => {
+        btn.addEventListener('click', async (event) => {
+          event.stopPropagation();
+          const student = allStudents.find((item) => item.id === btn.dataset.retakeId);
+          if (!confirm(`Delete the submission for ${student?.fullName || 'this student'} and allow a retake?`)) return;
+          btn.disabled = true;
+          btn.textContent = '…';
+          try {
+            await adminFetch(`/api/admin/submissions?id=${btn.dataset.retakeSubmission}`, { method: 'DELETE' });
+            submissionsByStudent.delete(btn.dataset.retakeId);
+            updateChipsAndStatus();
+          } catch (err) {
+            alert(`Failed to allow retake: ${err.message}`);
+            btn.disabled = false;
+            btn.textContent = 'Allow retake';
+          }
         });
       });
     }
