@@ -12,10 +12,29 @@ export function mapStudentRow(row) {
   };
 }
 
+async function resolveOrganizationId(supabase, organizationId) {
+  const value = organizationId.trim();
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+  if (uuid.test(value)) return value;
+
+  const { data, error } = await supabase
+    .from('organizations')
+    .select('id')
+    .ilike('name', value)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.id || null;
+}
+
 export async function findStudentByIdentifier(identifier, organizationId) {
   const supabase = createServiceClient();
   const id = identifier.trim();
   if (!id) return null;
+
+  const resolvedOrganizationId = await resolveOrganizationId(supabase, organizationId);
+  if (!resolvedOrganizationId) return null;
 
   const cols = 'id, full_name, roll_number, email, dob_hash, created_at';
 
@@ -23,7 +42,7 @@ export async function findStudentByIdentifier(identifier, organizationId) {
     .from('students')
     .select(cols)
     .ilike('roll_number', id)
-    .eq('organization_id', organizationId)
+    .eq('organization_id', resolvedOrganizationId)
     .maybeSingle();
 
   if (rollError) throw rollError;
@@ -33,7 +52,7 @@ export async function findStudentByIdentifier(identifier, organizationId) {
     .from('students')
     .select(cols)
     .ilike('email', id)
-    .eq('organization_id', organizationId)
+    .eq('organization_id', resolvedOrganizationId)
     .maybeSingle();
 
   if (emailError) throw emailError;

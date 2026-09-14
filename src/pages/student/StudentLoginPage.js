@@ -26,7 +26,7 @@ export function renderStudentLoginPage(container) {
         <form id="student-login-form" class="space-y-3">
           <label class="block">
             <span class="text-xs font-bold uppercase tracking-wide text-bolt-muted">Roll number or email</span>
-            <input id="input-organization" type="text" required class="mt-1 w-full px-3 py-2 text-sm" autocomplete="organization" placeholder="Your organization ID" />
+            <input id="input-organization" type="text" required class="mt-1 w-full px-3 py-2 text-sm" autocomplete="organization" placeholder="e.g. IIIT Bhopal" />
             <input id="input-identifier" type="text" required class="mt-1 w-full px-3 py-2 text-sm" autocomplete="username" placeholder="e.g. 21CS001 or name@example.com" />
           </label>
           <label class="block">
