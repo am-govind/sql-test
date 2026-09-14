@@ -40,6 +40,7 @@ export async function renderAdminExamListPage(container) {
                   <td class="font-mono">${formatDuration(exam.duration_sec)}</td>
                   <td class="space-x-2 whitespace-nowrap">
                     <button type="button" class="text-xs text-bolt-link hover:underline" data-edit="${exam.id}">Edit</button>
+                    <button type="button" class="text-xs text-bolt-link hover:underline" data-enrollment="${exam.id}">Enrollment</button>
                     <button type="button" class="text-xs text-bolt-link hover:underline" data-scores="${exam.id}">Scores</button>
                     <button type="button" class="text-xs text-bolt-muted hover:underline" data-copy="${exam.id}">Copy link</button>
                   </td>
@@ -65,6 +66,10 @@ export async function renderAdminExamListPage(container) {
 
   container.querySelectorAll('[data-scores]').forEach((btn) => {
     btn.addEventListener('click', () => navigate(`/admin/exams/${btn.dataset.scores}/submissions`));
+  });
+
+  container.querySelectorAll('[data-enrollment]').forEach((btn) => {
+    btn.addEventListener('click', () => navigate(`/admin/exams/${btn.dataset.enrollment}/enrollment`));
   });
 
   container.querySelectorAll('[data-copy]').forEach((btn) => {

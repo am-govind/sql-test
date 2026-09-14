@@ -16,6 +16,7 @@ import { renderAdminLoginPage } from './pages/admin/AdminLoginPage.js';
 import { renderAdminDashboardPage } from './pages/admin/AdminDashboardPage.js';
 import { renderAdminExamListPage } from './pages/admin/ExamListPage.js';
 import { renderExamEditorPage } from './pages/admin/ExamEditorPage.js';
+import { renderEnrollmentPage } from './pages/admin/EnrollmentPage.js';
 import { renderSubmissionsPage } from './pages/admin/SubmissionsPage.js';
 import { renderSubmissionDetailPage } from './pages/admin/SubmissionDetailPage.js';
 import { renderStudentRosterPage } from './pages/admin/StudentRosterPage.js';
@@ -93,6 +94,10 @@ async function renderApp() {
 
     case 'adminExamEdit':
       await renderExamEditorPage(appContainer, { examId: route.params.examId });
+      break;
+
+    case 'adminExamEnrollment':
+      await renderEnrollmentPage(appContainer, { examId: route.params.examId });
       break;
 
     case 'adminExamSubmissions':

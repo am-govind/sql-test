@@ -48,6 +48,7 @@ export function matchRoute(pathname) {
     { name: 'adminExams', pattern: /^\/admin\/exams$/ },
     { name: 'adminExamNew', pattern: /^\/admin\/exams\/new$/ },
     { name: 'adminExamEdit', pattern: /^\/admin\/exams\/([^/]+)\/edit$/ },
+    { name: 'adminExamEnrollment', pattern: /^\/admin\/exams\/([^/]+)\/enrollment$/ },
     { name: 'adminExamSubmissions', pattern: /^\/admin\/exams\/([^/]+)\/submissions$/ },
     { name: 'adminSubmissionDetail', pattern: /^\/admin\/submissions\/([^/]+)$/ },
     { name: 'studentLogin', pattern: /^\/student\/login$/ },
@@ -63,7 +64,7 @@ export function matchRoute(pathname) {
     if (!match) continue;
 
     const params = {};
-    if (route.name === 'adminExamEdit' || route.name === 'adminExamSubmissions') {
+    if (route.name === 'adminExamEdit' || route.name === 'adminExamEnrollment' || route.name === 'adminExamSubmissions') {
       params.examId = match[1];
     } else if (route.name === 'adminSubmissionDetail') {
       params.submissionId = match[1];
