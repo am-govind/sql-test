@@ -62,9 +62,9 @@ export async function getSubmission(id) {
   };
 }
 
-export async function computeAnalytics({ examId, ownerId }) {
+export async function computeAnalytics({ examId, organizationId }) {
   const supabase = createServiceClient();
-  const { data: ownedExams, error: ownerError } = await supabase.from('exams').select('id').eq('created_by', ownerId);
+  const { data: ownedExams, error: ownerError } = await supabase.from('exams').select('id').eq('organization_id', organizationId);
   if (ownerError) throw ownerError;
   const ownedIds = (ownedExams || []).map((exam) => exam.id);
   let query = supabase

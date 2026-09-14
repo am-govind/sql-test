@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const students = await listStudents();
+      const students = await listStudents(auth.organizationId);
       sendJson(res, 200, { students });
       return;
     }
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
 
       // Batch upload
       if (Array.isArray(body.students)) {
-        const results = await batchCreateStudents(body.students);
+        const results = await batchCreateStudents(body.students, auth.organizationId);
         sendJson(res, 200, results);
         return;
       }
@@ -32,6 +32,7 @@ export default async function handler(req, res) {
         rollNumber: body.rollNumber,
         email: body.email,
         dob: body.dob,
+        organizationId: auth.organizationId,
       });
       if (!result.ok) {
         sendJson(res, result.status, { error: result.error });

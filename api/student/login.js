@@ -29,14 +29,15 @@ export default async function handler(req, res) {
   try {
     const body = await readJsonBody(req);
     const identifier = body.identifier?.trim();
+    const organizationId = body.organizationId?.trim();
     const dob = normalizeDob(body.dob);
 
-    if (!identifier || !dob) {
-      sendJson(res, 400, { error: 'Roll number or email and date of birth are required' });
+    if (!identifier || !dob || !organizationId) {
+      sendJson(res, 400, { error: 'Organization ID, roll number or email, and date of birth are required' });
       return;
     }
 
-    const result = await authenticateStudent(identifier, dob);
+    const result = await authenticateStudent(identifier, dob, organizationId);
     if (!result.ok) {
       recordFailedLogin(ip);
       sendJson(res, result.status, { error: result.error });

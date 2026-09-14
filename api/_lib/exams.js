@@ -45,6 +45,7 @@ export function mapExamRow(row) {
     fullscreenEnforced: row.fullscreen_enforced,
     status: row.status,
     createdAt: row.created_at,
+    organizationId: row.organization_id,
     updatedAt: row.updated_at,
   };
 }

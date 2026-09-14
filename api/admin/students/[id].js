@@ -23,6 +23,7 @@ export default async function handler(req, res) {
         rollNumber: body.rollNumber,
         email: body.email,
         dob: body.dob,
+        organizationId: auth.organizationId,
       });
       if (!result.ok) {
         sendJson(res, result.status, { error: result.error });
@@ -33,7 +34,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
-      await deleteStudent(id);
+      await deleteStudent(id, auth.organizationId);
       sendJson(res, 200, { ok: true });
       return;
     }

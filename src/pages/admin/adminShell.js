@@ -4,7 +4,7 @@
 
 import { boltShell, boltWordmark } from '../../components/BoltShell.js';
 import { navigate } from '../../router.js';
-import { supabase } from '../../lib/supabase.js';
+import { supabase, getOrganizations, setCurrentOrganization } from '../../lib/supabase.js';
 import { sound } from '../../services/sound.js';
 
 export function adminShell({ title, body, width = 'max-w-6xl', cardOverflow = 'overflow-hidden' }) {
@@ -16,6 +16,9 @@ export function adminShell({ title, body, width = 'max-w-6xl', cardOverflow = 'o
         <div class="flex flex-wrap items-center justify-between gap-3">
           ${boltWordmark('Admin portal')}
           <nav class="flex flex-wrap items-center gap-3 text-sm">
+            <select id="admin-organization" class="border border-bolt-border bg-white px-2 py-1 text-xs" aria-label="Organization">
+              <option>Loading organization…</option>
+            </select>
             <a href="/admin" data-nav class="text-bolt-link hover:underline">Dashboard</a>
             <a href="/admin/exams" data-nav class="text-bolt-link hover:underline">Exams</a>
             <a href="/admin/students" data-nav class="text-bolt-link hover:underline">Students</a>
@@ -30,6 +33,19 @@ export function adminShell({ title, body, width = 'max-w-6xl', cardOverflow = 'o
 }
 
 export function wireAdminShell(container) {
+  const organizationSelect = container.querySelector('#admin-organization');
+  if (organizationSelect) {
+    getOrganizations().then((organizations) => {
+      const selected = sessionStorage.getItem('sqlproctor_admin_organization_v1') || organizations[0]?.id;
+      organizationSelect.innerHTML = organizations.map((org) => `<option value="${escapeHtml(org.id)}" ${org.id === selected ? 'selected' : ''}>${escapeHtml(org.name)}</option>`).join('');
+      organizationSelect.addEventListener('change', () => {
+        setCurrentOrganization(organizationSelect.value);
+        window.location.reload();
+      });
+    }).catch(() => {
+      organizationSelect.innerHTML = '<option>Organization unavailable</option>';
+    });
+  }
   container.querySelectorAll('[data-nav]').forEach((link) => {
     link.addEventListener('click', (event) => {
       event.preventDefault();

@@ -2,18 +2,18 @@
  * Admin analytics dashboard.
  */
 
-import { supabase } from '../../lib/supabase.js';
+import { supabase, getCurrentOrganization } from '../../lib/supabase.js';
 import { adminFetch } from '../../lib/supabase.js';
 import { navigate } from '../../router.js';
 import { timer } from '../../services/timer.js';
 import { adminShell, wireAdminShell, escapeHtml, formatDuration } from './adminShell.js';
 
 export async function renderAdminDashboardPage(container) {
-  const { data: { user } } = await supabase.auth.getUser();
+  const organization = await getCurrentOrganization();
   const { data: exams } = await supabase
     .from('exams')
     .select('id, title')
-    .eq('created_by', user.id)
+    .eq('organization_id', organization?.id)
     .order('created_at', { ascending: false });
 
   container.innerHTML = adminShell({

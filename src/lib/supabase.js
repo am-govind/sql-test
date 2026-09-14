@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const ORG_KEY = 'sqlproctor_admin_organization_v1';
 
 export const supabaseConfigured = Boolean(url && anonKey);
 
@@ -22,17 +23,25 @@ export async function requireAdminSession() {
   return { session: data.session };
 }
 
-export async function getCurrentOrganization() {
+export async function getOrganizations() {
   const { data: { user } } = await supabase.auth.getUser();
   const { data, error } = await supabase
     .from('organization_members')
     .select('organization_id, organizations(id, name)')
     .eq('user_id', user.id)
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order('created_at', { ascending: true });
   if (error) throw error;
-  return data?.organizations || null;
+  return (data || []).map((row) => row.organizations).filter(Boolean);
+}
+
+export async function getCurrentOrganization() {
+  const organizations = await getOrganizations();
+  const selected = sessionStorage.getItem(ORG_KEY);
+  return organizations.find((org) => org.id === selected) || organizations[0] || null;
+}
+
+export function setCurrentOrganization(id) {
+  sessionStorage.setItem(ORG_KEY, id);
 }
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, '') || '';
@@ -45,6 +54,8 @@ export async function adminFetch(path, options = {}) {
   const token = await getAccessToken();
   const headers = { ...(options.headers || {}) };
   if (token) headers.Authorization = `Bearer ${token}`;
+  const organizationId = sessionStorage.getItem(ORG_KEY);
+  if (organizationId) headers['X-Organization-Id'] = organizationId;
   if (options.body && !headers['Content-Type']) {
     headers['Content-Type'] = 'application/json';
   }

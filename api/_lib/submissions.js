@@ -44,6 +44,7 @@ export async function createSubmission(payload) {
     analytics: analytics || {},
     violations: violations || [],
     lesson_results: lessonResults || [],
+    organization_id: examResult.exam.organizationId,
     submitted_at: new Date().toISOString(),
   });
 
@@ -61,9 +62,9 @@ export async function checkSubmissionStatus(studentId, examId) {
   return hasStudentSubmitted(studentId, examId);
 }
 
-export async function listSubmissions({ examId, ownerId }) {
+export async function listSubmissions({ examId, organizationId }) {
   const supabase = createServiceClient();
-  const { data: ownedExams, error: ownerError } = await supabase.from('exams').select('id').eq('created_by', ownerId);
+  const { data: ownedExams, error: ownerError } = await supabase.from('exams').select('id').eq('organization_id', organizationId);
   if (ownerError) throw ownerError;
   const ownedIds = (ownedExams || []).map((exam) => exam.id);
   let query = supabase
@@ -100,16 +101,16 @@ export async function listSubmissions({ examId, ownerId }) {
     .map((row, index) => ({ ...row, rank: index + 1 }));
 }
 
-export async function getSubmission(id, ownerId) {
+export async function getSubmission(id, organizationId) {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from('submissions')
-    .select('*, exams(title, created_by)')
+    .select('*, exams(title, organization_id)')
     .eq('id', id)
     .maybeSingle();
 
   if (error) throw error;
-  if (!data || data.exams?.created_by !== ownerId) return null;
+  if (!data || data.exams?.organization_id !== organizationId) return null;
 
   return {
     id: data.id,
@@ -126,14 +127,14 @@ export async function getSubmission(id, ownerId) {
   };
 }
 
-export async function deleteSubmission(id, ownerId) {
+export async function deleteSubmission(id, organizationId) {
   if (!id) {
     return { ok: false, status: 400, error: 'Submission id is required' };
   }
 
   const supabase = createServiceClient();
-  const { data: submission } = await supabase.from('submissions').select('exam_id, exams!inner(created_by)').eq('id', id).maybeSingle();
-  if (!submission || submission.exams.created_by !== ownerId) return { ok: false, status: 404, error: 'Submission not found' };
+  const { data: submission } = await supabase.from('submissions').select('exam_id, organization_id').eq('id', id).eq('organization_id', organizationId).maybeSingle();
+  if (!submission) return { ok: false, status: 404, error: 'Submission not found' };
   const { data, error } = await supabase
     .from('submissions')
     .delete()

@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const enrollments = await listEnrollmentsForExam(examId);
+      const enrollments = await listEnrollmentsForExam(examId, auth.organizationId);
       sendJson(res, 200, { enrollments });
       return;
     }
@@ -25,8 +25,8 @@ export default async function handler(req, res) {
     if (req.method === 'PUT') {
       const body = await readJsonBody(req);
       const studentIds = Array.isArray(body.studentIds) ? body.studentIds : [];
-      await setExamEnrollments(examId, studentIds);
-      const enrollments = await listEnrollmentsForExam(examId);
+      await setExamEnrollments(examId, studentIds, auth.organizationId);
+      const enrollments = await listEnrollmentsForExam(examId, auth.organizationId);
       sendJson(res, 200, { enrollments });
       return;
     }

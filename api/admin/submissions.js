@@ -14,7 +14,7 @@ export default async function handler(req, res) {
       const { examId, id } = req.query;
 
       if (id) {
-        const submission = await getSubmission(id, auth.user.id);
+        const submission = await getSubmission(id, auth.organizationId);
         if (!submission) {
           sendJson(res, 404, { error: 'Submission not found' });
           return;
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
         return;
       }
 
-      const submissions = await listSubmissions({ examId, ownerId: auth.user.id });
+      const submissions = await listSubmissions({ examId, organizationId: auth.organizationId });
       sendJson(res, 200, { submissions });
       return;
     } catch (err) {
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
         return;
       }
 
-      const result = await deleteSubmission(id, auth.user.id);
+      const result = await deleteSubmission(id, auth.organizationId);
       if (!result.ok) {
         sendJson(res, result.status || 400, { error: result.error });
         return;

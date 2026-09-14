@@ -29,8 +29,8 @@ export async function renderExamEditorPage(container, { examId = null }) {
   };
 
   if (examId) {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data, error } = await supabase.from('exams').select('*').eq('id', examId).eq('created_by', user.id).maybeSingle();
+    const organization = await getCurrentOrganization();
+    const { data, error } = await supabase.from('exams').select('*').eq('id', examId).eq('organization_id', organization?.id).maybeSingle();
     if (error || !data) {
       container.innerHTML = adminShell({
         title: 'Exam not found',
@@ -290,7 +290,7 @@ export async function renderExamEditorPage(container, { examId = null }) {
       return;
     }
     const query = examId
-      ? supabase.from('exams').update(payload).eq('id', examId).eq('created_by', user.id)
+      ? supabase.from('exams').update(payload).eq('id', examId).eq('organization_id', organization.id)
       : supabase.from('exams').insert({ ...payload, created_by: user.id, organization_id: organization.id }).select('id').single();
 
     const { data, error } = await query;

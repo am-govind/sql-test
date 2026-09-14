@@ -12,7 +12,7 @@ export function mapStudentRow(row) {
   };
 }
 
-export async function findStudentByIdentifier(identifier) {
+export async function findStudentByIdentifier(identifier, organizationId) {
   const supabase = createServiceClient();
   const id = identifier.trim();
   if (!id) return null;
@@ -23,6 +23,7 @@ export async function findStudentByIdentifier(identifier) {
     .from('students')
     .select(cols)
     .ilike('roll_number', id)
+    .eq('organization_id', organizationId)
     .maybeSingle();
 
   if (rollError) throw rollError;
@@ -32,14 +33,15 @@ export async function findStudentByIdentifier(identifier) {
     .from('students')
     .select(cols)
     .ilike('email', id)
+    .eq('organization_id', organizationId)
     .maybeSingle();
 
   if (emailError) throw emailError;
   return byEmail;
 }
 
-export async function authenticateStudent(identifier, dob) {
-  const student = await findStudentByIdentifier(identifier);
+export async function authenticateStudent(identifier, dob, organizationId) {
+  const student = await findStudentByIdentifier(identifier, organizationId);
   if (!student) return { ok: false, status: 401, error: 'Invalid credentials' };
 
   const valid = await verifyDob(dob, student.dob_hash);
@@ -51,18 +53,19 @@ export async function authenticateStudent(identifier, dob) {
   };
 }
 
-export async function listStudents() {
+export async function listStudents(organizationId) {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from('students')
     .select('id, full_name, roll_number, email, created_at')
+    .eq('organization_id', organizationId)
     .order('full_name', { ascending: true });
 
   if (error) throw error;
   return (data || []).map(mapStudentRow);
 }
 
-export async function batchCreateStudents(studentsList) {
+export async function batchCreateStudents(studentsList, organizationId) {
   const supabase = createServiceClient();
   const results = { inserted: 0, updated: 0, errors: [] };
 
@@ -79,6 +82,7 @@ export async function batchCreateStudents(studentsList) {
         .from('students')
         .select('id')
         .eq('roll_number', s.rollNumber.trim())
+        .eq('organization_id', organizationId)
         .maybeSingle();
 
       if (existing) {
@@ -88,6 +92,7 @@ export async function batchCreateStudents(studentsList) {
             full_name: s.fullName.trim(),
             email: s.email?.trim() || null,
             dob_hash: dobHash,
+            organization_id: organizationId,
           })
           .eq('id', existing.id);
 
@@ -104,6 +109,7 @@ export async function batchCreateStudents(studentsList) {
             roll_number: s.rollNumber.trim(),
             email: s.email?.trim() || null,
             dob_hash: dobHash,
+            organization_id: organizationId,
           });
 
         if (error) {
@@ -120,7 +126,7 @@ export async function batchCreateStudents(studentsList) {
   return results;
 }
 
-export async function createStudent({ fullName, rollNumber, email, dob }) {
+export async function createStudent({ fullName, rollNumber, email, dob, organizationId }) {
   const supabase = createServiceClient();
   const dobHash = await hashDob(dob);
 
@@ -131,6 +137,7 @@ export async function createStudent({ fullName, rollNumber, email, dob }) {
       roll_number: rollNumber.trim(),
       email: email?.trim() || null,
       dob_hash: dobHash,
+      organization_id: organizationId,
     })
     .select('id, full_name, roll_number, email, created_at')
     .single();
@@ -145,7 +152,7 @@ export async function createStudent({ fullName, rollNumber, email, dob }) {
   return { ok: true, student: mapStudentRow(data) };
 }
 
-export async function updateStudent(id, { fullName, rollNumber, email, dob }) {
+export async function updateStudent(id, { fullName, rollNumber, email, dob, organizationId }) {
   const supabase = createServiceClient();
   const payload = {
     full_name: fullName?.trim(),
@@ -158,6 +165,7 @@ export async function updateStudent(id, { fullName, rollNumber, email, dob }) {
     .from('students')
     .update(payload)
     .eq('id', id)
+    .eq('organization_id', organizationId)
     .select('id, full_name, roll_number, email, created_at')
     .single();
 
@@ -171,9 +179,9 @@ export async function updateStudent(id, { fullName, rollNumber, email, dob }) {
   return { ok: true, student: mapStudentRow(data) };
 }
 
-export async function deleteStudent(id) {
+export async function deleteStudent(id, organizationId) {
   const supabase = createServiceClient();
-  const { error } = await supabase.from('students').delete().eq('id', id);
+  const { error } = await supabase.from('students').delete().eq('id', id).eq('organization_id', organizationId);
   if (error) throw error;
 }
 
@@ -269,12 +277,13 @@ export async function getEnrolledExamForStudent(studentId, examId) {
   };
 }
 
-export async function listEnrollmentsForExam(examId) {
+export async function listEnrollmentsForExam(examId, organizationId) {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from('exam_enrollments')
     .select('id, student_id, enrolled_at, students(id, full_name, roll_number, email)')
     .eq('exam_id', examId)
+    .eq('organization_id', organizationId)
     .order('enrolled_at', { ascending: true });
 
   if (error) throw error;
@@ -289,7 +298,7 @@ export async function listEnrollmentsForExam(examId) {
   }));
 }
 
-export async function setExamEnrollments(examId, studentIds) {
+export async function setExamEnrollments(examId, studentIds, organizationId) {
   const supabase = createServiceClient();
   const uniqueIds = [...new Set(studentIds)];
 
@@ -305,6 +314,7 @@ export async function setExamEnrollments(examId, studentIds) {
   const rows = uniqueIds.map((studentId) => ({
     exam_id: examId,
     student_id: studentId,
+    organization_id: organizationId,
   }));
 
   const { data, error } = await supabase

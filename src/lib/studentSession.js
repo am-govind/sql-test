@@ -58,11 +58,11 @@ export async function studentFetch(path, options = {}) {
   return data;
 }
 
-export async function studentLogin(identifier, dob) {
+export async function studentLogin(organizationId, identifier, dob) {
   const res = await fetch(apiUrl('/api/student/login'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ identifier, dob }),
+    body: JSON.stringify({ organizationId, identifier, dob }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {

@@ -2,16 +2,17 @@
  * Admin exam list and management.
  */
 
-import { supabase } from '../../lib/supabase.js';
+import { supabase, getCurrentOrganization } from '../../lib/supabase.js';
 import { navigate } from '../../router.js';
 import { sound } from '../../services/sound.js';
 import { adminShell, wireAdminShell, escapeHtml, formatDuration } from './adminShell.js';
 
 export async function renderAdminExamListPage(container) {
+  const organization = await getCurrentOrganization();
   const { data: exams, error } = await supabase
     .from('exams')
     .select('id, title, status, lesson_ids, duration_sec, created_at')
-    .eq('created_by', (await supabase.auth.getUser()).data.user.id)
+    .eq('organization_id', organization?.id)
     .order('created_at', { ascending: false });
 
   container.innerHTML = adminShell({
