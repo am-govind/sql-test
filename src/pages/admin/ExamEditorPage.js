@@ -185,12 +185,24 @@ export async function renderExamEditorPage(container, { examId = null, showEnrol
               </button>
             </div>
 
-            <!-- Selected Chips Area -->
-            <div id="enrolled-chips-container" class="min-h-[38px] p-2 bg-slate-50 border border-bolt-border rounded flex flex-wrap gap-1.5 items-center">
-              <span class="text-xs text-bolt-muted italic" id="chips-empty-msg">No students enrolled yet. Select students below.</span>
+            <div class="rounded-md border border-blue-100 bg-blue-50/50 p-3">
+              <div class="mb-2 flex items-center justify-between gap-2">
+                <div>
+                  <h3 class="text-xs font-bold uppercase tracking-wide text-bolt-slate">Currently enrolled</h3>
+                  <p class="text-[11px] text-bolt-muted">These students can access this exam.</p>
+                </div>
+                <a href="/admin/students" data-nav class="text-xs text-bolt-link hover:underline">Add or import students</a>
+              </div>
+              <div id="enrolled-chips-container" class="min-h-[38px] p-2 bg-white border border-blue-100 rounded flex flex-wrap gap-1.5 items-center">
+                <span class="text-xs text-bolt-muted italic" id="chips-empty-msg">No students enrolled yet.</span>
+              </div>
             </div>
 
-            <!-- Custom Dropdown Component -->
+            <div class="pt-1">
+              <h3 class="text-xs font-bold uppercase tracking-wide text-bolt-slate">Add students to this exam</h3>
+              <p class="mb-2 text-[11px] text-bolt-muted">Select from students already added to your organization.</p>
+            </div>
+
             <div class="relative" id="enrollment-dropdown-wrapper">
               <button type="button" id="btn-toggle-dropdown" class="w-full flex items-center justify-between px-3 py-2 text-sm bg-white border border-bolt-border rounded hover:border-bolt-blue transition-colors focus:outline-none focus:ring-1 focus:ring-bolt-blue">
                 <span id="dropdown-btn-label" class="text-bolt-slate font-medium">Select students to enroll…</span>
