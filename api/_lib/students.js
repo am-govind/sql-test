@@ -302,10 +302,32 @@ export async function setExamEnrollments(examId, studentIds, organizationId) {
   const supabase = createServiceClient();
   const uniqueIds = [...new Set(studentIds)];
 
+  const { data: exam, error: examError } = await supabase
+    .from('exams')
+    .select('id, organization_id')
+    .eq('id', examId)
+    .eq('organization_id', organizationId)
+    .maybeSingle();
+  if (examError) throw examError;
+  if (!exam) throw new Error('Exam is not available in the selected organization');
+
+  if (uniqueIds.length) {
+    const { data: students, error: studentError } = await supabase
+      .from('students')
+      .select('id')
+      .in('id', uniqueIds)
+      .eq('organization_id', organizationId);
+    if (studentError) throw studentError;
+    if ((students || []).length !== uniqueIds.length) {
+      throw new Error('One or more selected students do not belong to the selected organization');
+    }
+  }
+
   const { error: deleteError } = await supabase
     .from('exam_enrollments')
     .delete()
-    .eq('exam_id', examId);
+    .eq('exam_id', examId)
+    .eq('organization_id', organizationId);
 
   if (deleteError) throw deleteError;
 
