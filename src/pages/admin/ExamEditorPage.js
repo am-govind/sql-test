@@ -10,7 +10,7 @@ import { adminShell, wireAdminShell, escapeHtml } from './adminShell.js';
 
 const DEFAULT_LESSON_IDS = LESSONS.map((l) => l.id);
 
-export async function renderExamEditorPage(container, { examId = null }) {
+export async function renderExamEditorPage(container, { examId = null, showEnrollment = false }) {
   let exam = {
     title: '',
     description: '',
@@ -173,7 +173,7 @@ export async function renderExamEditorPage(container, { examId = null }) {
           </div>
         </section>
 
-        ${examId ? `
+        ${examId && showEnrollment ? `
           <section id="enrollment-section" class="space-y-3 rounded-lg border border-bolt-border bg-white p-4 shadow-sm">
             <div class="flex items-center justify-between">
               <div>
@@ -303,7 +303,7 @@ export async function renderExamEditorPage(container, { examId = null }) {
     navigate(examId ? '/admin/exams' : `/admin/exams/${data.id}/edit`);
   });
 
-  if (examId) {
+  if (examId && showEnrollment) {
     wireEnrollmentSection(container, examId);
   }
 }

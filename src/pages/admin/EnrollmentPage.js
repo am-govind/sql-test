@@ -3,7 +3,7 @@ import { renderExamEditorPage } from './ExamEditorPage.js';
 // Reuse the existing, tested enrollment controls while presenting them as a
 // focused workflow separate from exam configuration.
 export async function renderEnrollmentPage(container, { examId }) {
-  await renderExamEditorPage(container, { examId });
+  await renderExamEditorPage(container, { examId, showEnrollment: true });
 
   const form = container.querySelector('#exam-editor-form');
   const enrollment = container.querySelector('#enrollment-section');
