@@ -305,6 +305,24 @@ export class MediaProctorService {
     }
   }
 
+  async captureSnapshot() {
+    if (!this.videoStream) return null;
+    const video = document.createElement('video');
+    video.srcObject = this.videoStream;
+    video.muted = true;
+    video.playsInline = true;
+    await video.play().catch(() => {});
+    if (!video.videoWidth || !video.videoHeight) return null;
+
+    const canvas = document.createElement('canvas');
+    const width = Math.min(video.videoWidth, 640);
+    const height = Math.round(video.videoHeight * (width / video.videoWidth));
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext('2d').drawImage(video, 0, 0, width, height);
+    return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.72));
+  }
+
   stop() {
     this.lookAwaySeconds = 0;
     this.lookAwayWarningSent = false;

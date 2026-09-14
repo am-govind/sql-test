@@ -20,6 +20,32 @@ import { timer } from '../services/timer.js';
 import { proctor } from '../services/proctor.js';
 import { mediaProctor } from '../services/mediaProctor.js';
 import { sound } from '../services/sound.js';
+import { createProctoringEvent } from '../lib/studentSession.js';
+
+const evidenceViolationTypes = {
+  camera_covered: 'camera_blocked',
+  face_not_visible: 'no_face_detected',
+  noise_detected: 'audio_anomaly',
+  rapid_movement: 'rapid_movement',
+};
+
+async function saveProctoringEvidence(examId, violationType) {
+  const normalizedType = evidenceViolationTypes[violationType];
+  if (!normalizedType || !mediaProctor.videoStream) return;
+  try {
+    const snapshot = await mediaProctor.captureSnapshot();
+    if (!snapshot) return;
+    const result = await createProctoringEvent({ examId, violationType: normalizedType });
+    const { supabase } = await import('../lib/supabase.js');
+    await supabase.storage.from('proctoring-snapshots').uploadToSignedUrl(
+      result.upload.path,
+      result.upload.token,
+      snapshot,
+    );
+  } catch (error) {
+    console.warn('[Proctoring] Evidence upload failed:', error);
+  }
+}
 
 export function renderTestPage(container, { onSubmitExam }) {
   const session = state.session;
@@ -220,6 +246,7 @@ export function renderTestPage(container, { onSubmitExam }) {
 
   proctor.start({
     onViolation: (result) => {
+      void saveProctoringEvidence(session.examId, result.violation?.type);
       updateNavbarViolations(state.session.violations.length);
       showViolationModal({
         violation: result.violation,

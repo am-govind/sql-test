@@ -17,7 +17,10 @@ export async function renderSubmissionsPage(container, { examId }) {
   const bodyEl = container.querySelector('#submissions-body');
 
   try {
-    const { submissions } = await adminFetch(`/api/admin/submissions?examId=${examId}`);
+    const [{ submissions }, { events }] = await Promise.all([
+      adminFetch(`/api/admin/submissions?examId=${examId}`),
+      adminFetch(`/api/admin/proctoring-events?examId=${examId}`),
+    ]);
 
     bodyEl.innerHTML = `
       <div class="mb-4 flex items-center justify-between gap-3">
@@ -54,6 +57,38 @@ export async function renderSubmissionsPage(container, { examId }) {
           </tbody>
         </table>
       </div>
+      <section class="mt-8">
+        <div class="mb-3 flex items-center justify-between">
+          <div>
+            <h2 class="font-display text-base font-semibold text-bolt-slate">Proctoring review</h2>
+            <p class="text-xs text-bolt-muted">Review captured evidence before making a decision.</p>
+          </div>
+          <span class="text-xs text-bolt-muted">${events.length} event${events.length === 1 ? '' : 's'}</span>
+        </div>
+        <div id="proctoring-events" class="space-y-3">
+          ${events.map((event) => `
+            <article class="rounded-md border border-bolt-border bg-white p-3" data-event-id="${event.id}">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div class="flex gap-3">
+                  ${event.snapshot_url ? `<a href="${event.snapshot_url}" target="_blank" rel="noreferrer"><img src="${event.snapshot_url}" alt="Proctoring evidence" class="h-20 w-28 rounded border border-bolt-border object-cover" /></a>` : '<div class="flex h-20 w-28 items-center justify-center rounded bg-slate-100 text-[10px] text-bolt-muted">No snapshot</div>'}
+                  <div>
+                    <p class="font-semibold text-bolt-ink">${escapeHtml(event.studentName)} <span class="font-mono text-xs text-bolt-muted">(${escapeHtml(event.rollNumber)})</span></p>
+                    <p class="mt-1 text-xs font-bold uppercase text-bolt-red">${escapeHtml(event.violationType.replaceAll('_', ' '))}</p>
+                    <p class="mt-1 text-xs text-bolt-muted">${new Date(event.detectedAt).toLocaleString()} · ${event.confidence == null ? 'No confidence score' : `${Math.round(event.confidence * 100)}% confidence`}</p>
+                  </div>
+                </div>
+                <span class="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase text-bolt-muted" data-review-status>${escapeHtml(event.reviewStatus.replaceAll('_', ' '))}</span>
+              </div>
+              <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-bolt-border pt-3">
+                <input data-review-notes class="min-w-[220px] flex-1 px-2 py-1 text-xs" placeholder="Optional review notes" value="${escapeHtml(event.reviewNotes || '')}" />
+                <button type="button" class="btn-secondary px-2 py-1 text-xs text-bolt-red" data-review="cheating">Mark cheating</button>
+                <button type="button" class="btn-secondary px-2 py-1 text-xs text-bolt-green" data-review="not_cheating">Not cheating</button>
+                <button type="button" class="btn-secondary px-2 py-1 text-xs" data-review="needs_review">Needs review</button>
+              </div>
+            </article>
+          `).join('') || '<p class="rounded-md border border-dashed border-bolt-border p-6 text-center text-sm text-bolt-muted">No proctoring events for this exam.</p>'}
+        </div>
+      </section>
     `;
 
     bodyEl.querySelector('#btn-back-exams')?.addEventListener('click', () => navigate('/admin/exams'));
@@ -82,6 +117,29 @@ export async function renderSubmissionsPage(container, { examId }) {
           alert(`Failed to delete: ${err.message}`);
           btn.disabled = false;
           btn.textContent = 'Allow Retake';
+        }
+      });
+    });
+
+    bodyEl.querySelectorAll('[data-event-id] [data-review]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const card = btn.closest('[data-event-id]');
+        const status = btn.dataset.review;
+        const buttons = card.querySelectorAll('[data-review]');
+        buttons.forEach((item) => { item.disabled = true; });
+        try {
+          await adminFetch(`/api/admin/proctoring-events?id=${card.dataset.eventId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              reviewStatus: status,
+              reviewNotes: card.querySelector('[data-review-notes]').value,
+            }),
+          });
+          card.querySelector('[data-review-status]').textContent = status.replaceAll('_', ' ');
+        } catch (err) {
+          alert(`Failed to save review: ${err.message}`);
+        } finally {
+          buttons.forEach((item) => { item.disabled = false; });
         }
       });
     });
